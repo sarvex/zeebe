@@ -47,18 +47,8 @@ final class BufferedResult implements ProcessingResult, TaskResult {
   }
 
   @Override
-  public boolean executePostCommitTasks() {
-    boolean aggregatedResult = true;
-
-    for (final PostCommitTask task : postCommitTasks) {
-      try {
-        aggregatedResult = aggregatedResult && task.flush();
-      } catch (final Exception e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    return aggregatedResult;
+  public List<PostCommitTask> getPostCommitTasks() {
+    return postCommitTasks;
   }
 
   @Override

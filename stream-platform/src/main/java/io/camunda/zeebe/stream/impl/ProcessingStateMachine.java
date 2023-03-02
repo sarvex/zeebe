@@ -22,9 +22,9 @@ import io.camunda.zeebe.scheduler.future.ActorFuture;
 import io.camunda.zeebe.scheduler.retry.AbortableRetryStrategy;
 import io.camunda.zeebe.scheduler.retry.RecoverableRetryStrategy;
 import io.camunda.zeebe.scheduler.retry.RetryStrategy;
-import io.camunda.zeebe.stream.api.EmptyProcessingResult;
 import io.camunda.zeebe.stream.api.EventFilter;
 import io.camunda.zeebe.stream.api.MetadataFilter;
+import io.camunda.zeebe.stream.api.PostCommitTask;
 import io.camunda.zeebe.stream.api.ProcessingResponse;
 import io.camunda.zeebe.stream.api.ProcessingResult;
 import io.camunda.zeebe.stream.api.ProcessingResultBuilder;
@@ -145,7 +145,6 @@ public final class ProcessingStateMachine {
   private boolean reachedEnd = true;
   private final StreamProcessorContext context;
   private final List<RecordProcessor> recordProcessors;
-  private ProcessingResult currentProcessingResult;
   private List<LogAppendEntry> pendingWrites;
   private Collection<ProcessingResponse> pendingResponses;
 
@@ -155,6 +154,7 @@ public final class ProcessingStateMachine {
   private final int maxCommandsInBatch;
   private int processedCommandsCount;
   private final ProcessingMetrics processingMetrics;
+  private List<PostCommitTask> pendingPostCommitTasks;
 
   public ProcessingStateMachine(
       final StreamProcessorContext context,
@@ -245,8 +245,6 @@ public final class ProcessingStateMachine {
     // are triggered from commit listener
     inProcessing = true;
 
-    currentProcessingResult = EmptyProcessingResult.INSTANCE;
-
     metadata.reset();
     loggedEvent.readMetadata(metadata);
 
@@ -267,7 +265,9 @@ public final class ProcessingStateMachine {
         processingMetrics.observeCommandCount(processedCommandsCount);
       }
 
-      if (currentProcessingResult.isEmpty()) {
+      if (pendingPostCommitTasks.isEmpty()
+          && pendingWrites.isEmpty()
+          && pendingResponses.isEmpty()) {
         skipRecord();
         return;
       }
@@ -328,12 +328,14 @@ public final class ProcessingStateMachine {
     processedCommandsCount = 0;
     pendingWrites = new ArrayList<>();
     pendingResponses = new ArrayList<>();
+    pendingPostCommitTasks = new ArrayList<>();
     final var pendingCommands = new ArrayDeque<TypedRecord<?>>();
     pendingCommands.addLast(initialCommand);
 
     while (!pendingCommands.isEmpty() && processedCommandsCount < currentProcessingBatchLimit) {
 
       final var command = pendingCommands.removeFirst();
+      ProcessingResult currentProcessingResult = null;
 
       currentProcessor =
           recordProcessors.stream()
@@ -354,9 +356,13 @@ public final class ProcessingStateMachine {
         pendingCommands.addAll(batchProcessingStepResult.toProcess());
         pendingWrites.addAll(batchProcessingStepResult.toWrite());
         currentProcessingResult.getProcessingResponse().ifPresent(pendingResponses::add);
+        pendingPostCommitTasks.addAll(currentProcessingResult.getPostCommitTasks());
       }
 
-      lastProcessingResultSize = currentProcessingResult.getRecordBatch().entries().size();
+      lastProcessingResultSize =
+          currentProcessingResult == null
+              ? lastProcessingResultSize
+              : currentProcessingResult.getRecordBatch().entries().size();
       processedCommandsCount++;
       metrics.commandsProcessed();
     }
@@ -438,11 +444,12 @@ public final class ProcessingStateMachine {
         () -> {
           final ProcessingResultBuilder processingResultBuilder =
               new BufferedProcessingResultBuilder(logStreamWriter::canWriteEvents);
-          currentProcessingResult =
+          final var currentProcessingResult =
               currentProcessor.onProcessingError(
                   processingException, typedCommand, processingResultBuilder);
           pendingWrites = currentProcessingResult.getRecordBatch().entries();
           pendingResponses = currentProcessingResult.getProcessingResponse().stream().toList();
+          pendingPostCommitTasks = currentProcessingResult.getPostCommitTasks();
         });
   }
 
@@ -557,7 +564,17 @@ public final class ProcessingStateMachine {
 
   private boolean executePostCommitTasks() {
     try (final var timer = processingMetrics.startBatchProcessingPostCommitTasksTimer()) {
-      return currentProcessingResult.executePostCommitTasks();
+      boolean aggregatedResult = true;
+
+      for (final PostCommitTask task : pendingPostCommitTasks) {
+        try {
+          aggregatedResult = aggregatedResult && task.flush();
+        } catch (final Exception e) {
+          throw new RuntimeException(e);
+        }
+      }
+
+      return aggregatedResult;
     }
   }
 

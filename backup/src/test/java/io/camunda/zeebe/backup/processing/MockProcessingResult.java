@@ -21,6 +21,7 @@ import io.camunda.zeebe.stream.api.records.ImmutableRecordBatch;
 import io.camunda.zeebe.stream.impl.records.RecordBatch;
 import io.camunda.zeebe.util.Either;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,8 +38,8 @@ record MockProcessingResult(List<Event> records) implements ProcessingResult {
   }
 
   @Override
-  public boolean executePostCommitTasks() {
-    return false;
+  public List<PostCommitTask> getPostCommitTasks() {
+    return Collections.emptyList();
   }
 
   @Override
