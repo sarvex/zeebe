@@ -54,6 +54,6 @@ public class ExampleEnginePerfTest {
 
     // then
     final var diff = end - start;
-    Assertions.assertThat(Duration.ofMillis(diff)).isLessThan(Duration.ofMillis(100));
+    Assertions.assertThat(Duration.ofMillis(diff)).isLessThan(Duration.ofMillis(10));
   }
 }
