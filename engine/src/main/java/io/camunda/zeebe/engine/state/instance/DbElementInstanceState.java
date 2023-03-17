@@ -145,7 +145,7 @@ public final class DbElementInstanceState implements MutableElementInstanceState
     final ElementInstance instance;
     if (parent == null) {
       instance = new ElementInstance(key, state, value);
-      instance.setVariables(0);
+      instance.setVariables(4);
     } else {
       instance = new ElementInstance(key, parent, state, value);
       updateInstance(parent);
