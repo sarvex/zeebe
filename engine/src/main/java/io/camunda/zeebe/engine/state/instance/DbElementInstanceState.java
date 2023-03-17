@@ -35,11 +35,17 @@ import org.agrona.concurrent.UnsafeBuffer;
 public final class DbElementInstanceState implements MutableElementInstanceState {
 
   private final Map<Long, ElementInstance> cachedElementInstance = new HashMap<>();
+  private final ColumnFamily<DbCompositeKey<DbForeignKey<DbLong>, DbForeignKey<DbLong>>, DbNil>
+      parentChildColumnFamily;
+  private final DbCompositeKey<DbForeignKey<DbLong>, DbForeignKey<DbLong>> parentChildKey;
+  private final DbForeignKey<DbLong> parentKey;
+  private final DbLong elementInstanceKey;
+  private final ElementInstance elementInstance;
+  private final ColumnFamily<DbLong, ElementInstance> elementInstanceColumnFamily;
   private final LongLruCache<Long> elementInstanceKeyLRU =
       new LongLruCache<>(
           2,
           k -> {
-
             var elementInstance = cachedElementInstance.get(k);
             if (elementInstance != null) {
               return k;
@@ -53,16 +59,6 @@ public final class DbElementInstanceState implements MutableElementInstanceState
             return null;
           },
           cachedElementInstance::remove);
-
-  private final ColumnFamily<DbCompositeKey<DbForeignKey<DbLong>, DbForeignKey<DbLong>>, DbNil>
-      parentChildColumnFamily;
-  private final DbCompositeKey<DbForeignKey<DbLong>, DbForeignKey<DbLong>> parentChildKey;
-  private final DbForeignKey<DbLong> parentKey;
-
-  private final DbLong elementInstanceKey;
-  private final ElementInstance elementInstance;
-  private final ColumnFamily<DbLong, ElementInstance> elementInstanceColumnFamily;
-
   private final AwaitProcessInstanceResultMetadata awaitResultMetadata;
   private final ColumnFamily<DbLong, AwaitProcessInstanceResultMetadata>
       awaitProcessInstanceResultMetadataColumnFamily;
@@ -149,7 +145,7 @@ public final class DbElementInstanceState implements MutableElementInstanceState
     final ElementInstance instance;
     if (parent == null) {
       instance = new ElementInstance(key, state, value);
-      instance.setVariables(4);
+      instance.setVariables(0);
     } else {
       instance = new ElementInstance(key, parent, state, value);
       updateInstance(parent);

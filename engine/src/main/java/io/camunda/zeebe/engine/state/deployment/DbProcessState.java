@@ -212,7 +212,7 @@ public final class DbProcessState implements MutableProcessState {
         processesByProcessIdAndVersion.get(processIdBuffer);
 
     processId.wrapBuffer(processIdBuffer);
-//    final long latestVersion = versionManager.getCurrentValue(processIdBuffer);
+    //    final long latestVersion = versionManager.getCurrentValue(processIdBuffer);
     final long latestVersion = getLatestVersion(processIdBuffer);
 
     DeployedProcess deployedProcess;
@@ -228,9 +228,11 @@ public final class DbProcessState implements MutableProcessState {
   }
 
   private long getLatestVersion(final DirectBuffer processId) {
-    return versionMap.computeIfAbsent(processId, (p) -> {
-      return versionManager.getCurrentValue(processId);
-    });
+    return versionMap.computeIfAbsent(
+        processId,
+        (p) -> {
+          return versionManager.getCurrentValue(processId);
+        });
   }
 
   @Override
