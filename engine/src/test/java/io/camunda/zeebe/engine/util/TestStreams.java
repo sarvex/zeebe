@@ -45,9 +45,10 @@ import io.camunda.zeebe.stream.impl.StreamProcessorListener;
 import io.camunda.zeebe.stream.impl.StreamProcessorMode;
 import io.camunda.zeebe.stream.impl.TypedEventRegistry;
 import io.camunda.zeebe.test.util.AutoCloseableRule;
-import io.camunda.zeebe.util.FileUtil;
+import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URISyntaxException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -225,7 +226,7 @@ public final class TestStreams {
       final TypedRecordProcessorFactory factory,
       final boolean awaitOpening,
       final Optional<StreamProcessorListener> streamProcessorListenerOpt) {
-    final var storage = createRuntimeFolder(stream);
+    var storage = createRuntimeFolder(stream);
     final var snapshot = storage.getParent().resolve(SNAPSHOT_FOLDER);
 
     final var recoveredLatch = new CountDownLatch(1);
@@ -238,6 +239,12 @@ public final class TestStreams {
         };
     final TypedRecordProcessorFactory wrappedFactory =
         (ctx) -> factory.createProcessors(ctx).withListener(recoveredAwaiter);
+    // use big snapshot
+    try {
+      storage = new File(TestStreams.class.getResource("/snapshot").toURI()).toPath();
+    } catch (final URISyntaxException e) {
+      throw new RuntimeException(e);
+    }
 
     final ZeebeDb<?> zeebeDb;
     if (snapshotWasTaken) {
@@ -276,7 +283,8 @@ public final class TestStreams {
     openFuture.join(15, TimeUnit.SECONDS);
 
     final ProcessorContext processorContext =
-        ProcessorContext.createStreamContext(streamProcessor, zeebeDb, storage, snapshot);
+        ProcessorContext.createStreamContext(
+            streamProcessor, zeebeDb, new File("").toPath(), new File("").toPath());
     streamContextMap.put(logName, processorContext);
     closeables.manage(processorContext);
 
@@ -459,9 +467,6 @@ public final class TestStreams {
       LOG.debug("Close stream processor");
       streamProcessor.closeAsync().join();
       zeebeDb.close();
-      if (runtimePath.toFile().exists()) {
-        FileUtil.deleteFolder(runtimePath);
-      }
       closed = true;
     }
   }

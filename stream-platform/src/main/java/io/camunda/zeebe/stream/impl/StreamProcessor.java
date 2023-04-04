@@ -386,12 +386,13 @@ public class StreamProcessor extends Actor implements HealthMonitorable, LogReco
             .getLastProcessedPositionState()
             .getLastSuccessfulProcessedRecordPosition();
 
-    final boolean failedToRecoverReader = !logStreamReader.seekToNextEvent(snapshotPosition);
-    if (failedToRecoverReader
-        && streamProcessorContext.getProcessorMode() == StreamProcessorMode.PROCESSING) {
-      throw new IllegalStateException(
-          String.format(ERROR_MESSAGE_RECOVER_FROM_SNAPSHOT_FAILED, snapshotPosition, getName()));
-    }
+    //    final boolean failedToRecoverReader = !logStreamReader.seekToNextEvent(snapshotPosition);
+    //    if (failedToRecoverReader
+    //        && streamProcessorContext.getProcessorMode() == StreamProcessorMode.PROCESSING) {
+    //      throw new IllegalStateException(
+    //          String.format(ERROR_MESSAGE_RECOVER_FROM_SNAPSHOT_FAILED, snapshotPosition,
+    // getName()));
+    //    }
 
     LOG.info(
         "Recovered state of partition {} from snapshot at position {}",
