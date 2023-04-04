@@ -78,6 +78,19 @@ public class EnginePerformanceTest {
   //  # Run complete. Total time: 00:00:05
   //  Benchmark                                           Mode  Cnt  Score   Error   Units
   //  EnginePerformanceTest.measureProcessExecutionTime  thrpt  200  0.093 ± 0.003  ops/ms
+  // fixes
+  //  Result "io.camunda.zeebe.engine.perf.EnginePerformanceTest.measureProcessExecutionTime":
+  //      0.417 ±(99.9%) 0.035 ops/ms [Average]
+  //      (min, avg, max) = (0.081, 0.417, 0.768), stdev = 0.146
+  //  CI (99.9%): [0.383, 0.452] (assumes normal distribution)
+  //
+  //
+  //      # Run complete. Total time: 00:00:04
+  //
+  //  Benchmark                                           Mode  Cnt  Score   Error   Units
+  //  EnginePerformanceTest.measureProcessExecutionTime  thrpt  200  0.417 ± 0.035  ops/ms
+  //
+  //  Process finished with exit code 0
 
   private StreamProcessingComposite streamProcessingComposite;
   private AutoCloseableRule autoCloseableRule;
