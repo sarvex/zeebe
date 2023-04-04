@@ -66,9 +66,6 @@ public final class DbJobState implements JobState, MutableJobState {
       backoffColumnFamily;
   private long nextBackOffDueDate;
 
-  private final DbString benchmarkTaskType = new DbString();
-  private long lastKey = Long.MIN_VALUE;
-
   private final JobMetrics metrics;
 
   private JobStreamer jobStreamer = JobStreamer.noop();
@@ -77,8 +74,6 @@ public final class DbJobState implements JobState, MutableJobState {
       final ZeebeDb<ZbColumnFamilies> zeebeDb,
       final TransactionContext transactionContext,
       final int partitionId) {
-
-    benchmarkTaskType.wrapString("benchmark-task");
 
     jobKey = new DbLong();
     fkJob = new DbForeignKey<>(jobKey, ZbColumnFamilies.JOBS);
@@ -302,18 +297,13 @@ public final class DbJobState implements JobState, MutableJobState {
   public void forEachActivatableJobs(
       final DirectBuffer type, final BiFunction<Long, JobRecord, Boolean> callback) {
     jobTypeKey.wrapBuffer(type);
+
     activatableColumnFamily.whileEqualPrefix(
         jobTypeKey,
         ((compositeKey, zbNil) -> {
           final long jobKey = compositeKey.second().inner().getValue();
           // TODO #6521 reconsider race condition and whether or not the cleanup task is needed
-          var shouldContinue = visitJob(jobKey, callback::apply, () -> {});
-
-          if (shouldContinue && benchmarkTaskType.getBuffer().equals(jobTypeKey.getBuffer())) {
-            shouldContinue = !(jobKey >= lastKey);
-          }
-
-          return shouldContinue;
+          return visitJob(jobKey, callback::apply, () -> {});
         }));
   }
 
@@ -394,10 +384,6 @@ public final class DbJobState implements JobState, MutableJobState {
     // Need to upsert here because jobs can be marked as failed (and thus made activatable)
     // without activating them first
     activatableColumnFamily.upsert(typeJobKey, DbNil.INSTANCE);
-
-    if (benchmarkTaskType.getBuffer().equals(jobTypeKey.getBuffer())) {
-      lastKey = Math.max(key, lastKey);
-    }
 
     // always notify
     notifyJobAvailable(type);

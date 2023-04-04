@@ -93,9 +93,7 @@ public class ProcessingDbState implements MutableProcessingState {
     processState = new DbProcessState(zeebeDb, transactionContext);
     timerInstanceState = new DbTimerInstanceState(zeebeDb, transactionContext);
     elementInstanceState = new DbElementInstanceState(zeebeDb, transactionContext, variableState);
-    ((DbVariableState) variableState).setElementInstanceState(elementInstanceState);
-    eventScopeInstanceState =
-        new DbEventScopeInstanceState(zeebeDb, transactionContext, elementInstanceState);
+    eventScopeInstanceState = new DbEventScopeInstanceState(zeebeDb, transactionContext);
 
     deploymentState = new DbDeploymentState(zeebeDb, transactionContext);
     jobState = new DbJobState(zeebeDb, transactionContext, partitionId);

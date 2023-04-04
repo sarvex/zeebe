@@ -302,7 +302,7 @@ public final class CreateProcessInstanceProcessor
       final long processInstanceKey,
       final DirectBuffer bpmnProcessId) {
 
-    variableBehavior.initLocalDocument(
+    variableBehavior.mergeLocalDocument(
         processInstanceKey,
         processDefinitionKey,
         processInstanceKey,

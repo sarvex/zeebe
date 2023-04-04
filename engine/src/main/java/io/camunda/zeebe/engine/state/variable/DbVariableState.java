@@ -13,7 +13,6 @@ import io.camunda.zeebe.db.ZeebeDb;
 import io.camunda.zeebe.db.impl.DbCompositeKey;
 import io.camunda.zeebe.db.impl.DbLong;
 import io.camunda.zeebe.db.impl.DbString;
-import io.camunda.zeebe.engine.state.immutable.ElementInstanceState;
 import io.camunda.zeebe.engine.state.instance.ParentScopeKey;
 import io.camunda.zeebe.engine.state.mutable.MutableVariableState;
 import io.camunda.zeebe.msgpack.spec.MsgPackWriter;
@@ -53,8 +52,6 @@ public class DbVariableState implements MutableVariableState {
   // collecting variables
   private final ObjectHashSet<DirectBuffer> collectedVariables = new ObjectHashSet<>();
   private final ObjectHashSet<DirectBuffer> variablesToCollect = new ObjectHashSet<>();
-
-  private ElementInstanceState elementInstanceState;
 
   public DbVariableState(
       final ZeebeDb<ZbColumnFamilies> zeebeDb, final TransactionContext transactionContext) {
@@ -333,31 +330,19 @@ public class DbVariableState implements MutableVariableState {
       final Predicate<DbString> variableFilter,
       final BiConsumer<DbString, VariableInstance> variableConsumer,
       final BooleanSupplier completionCondition) {
-    final var elementInstance = elementInstanceState.getInstance(scopeKey);
-    final var variables = elementInstance.getVariables();
+    this.scopeKey.wrapLong(scopeKey);
 
-    if (variables > 0) {
-      final var variablesCount = new MutableInteger(variables);
+    variablesColumnFamily.whileEqualPrefix(
+        this.scopeKey,
+        (compositeKey, variable) -> {
+          final DbString name = compositeKey.second();
 
-      this.scopeKey.wrapLong(scopeKey);
-      variablesColumnFamily.whileEqualPrefix(
-          this.scopeKey,
-          (compositeKey, variable) -> {
-            final DbString name = compositeKey.second();
+          if (variableFilter.test(name)) {
+            variableConsumer.accept(name, variable);
+          }
 
-            if (variableFilter.test(name)) {
-              variableConsumer.accept(name, variable);
-            }
-
-            final var shouldContinue = !completionCondition.getAsBoolean();
-            return shouldContinue && variablesCount.decrementAndGet() > 0;
-          });
-    }
-
+          return !completionCondition.getAsBoolean();
+        });
     return false;
-  }
-
-  public void setElementInstanceState(ElementInstanceState elementInstanceState) {
-    this.elementInstanceState = elementInstanceState;
   }
 }

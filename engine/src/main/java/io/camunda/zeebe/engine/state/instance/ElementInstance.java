@@ -39,8 +39,6 @@ public final class ElementInstance extends UnpackedObject implements DbValue {
       new ObjectProperty<>("elementRecord", new IndexedRecord());
   private final IntegerProperty activeSequenceFlowsProp =
       new IntegerProperty("activeSequenceFlows", 0);
-  private final IntegerProperty eventTriggersProp = new IntegerProperty("eventTriggers", 0);
-  private final IntegerProperty variablesProp = new IntegerProperty("variables", 0);
 
   ElementInstance() {
     declareProperty(parentKeyProp)
@@ -53,9 +51,7 @@ public final class ElementInstance extends UnpackedObject implements DbValue {
         .declareProperty(interruptingEventKeyProp)
         .declareProperty(calledChildInstanceKeyProp)
         .declareProperty(recordProp)
-        .declareProperty(activeSequenceFlowsProp)
-        .declareProperty(eventTriggersProp)
-        .declareProperty(variablesProp);
+        .declareProperty(activeSequenceFlowsProp);
   }
 
   public ElementInstance(
@@ -222,25 +218,5 @@ public final class ElementInstance extends UnpackedObject implements DbValue {
 
   public void resetActiveSequenceFlows() {
     activeSequenceFlowsProp.setValue(0);
-  }
-
-  public int getEventTriggers() {
-    return eventTriggersProp.getValue();
-  }
-
-  public void incrementEventTriggers() {
-    eventTriggersProp.increment();
-  }
-
-  public int getVariables() {
-    return variablesProp.getValue();
-  }
-
-  public void setVariables(final int variables) {
-    variablesProp.setValue(variables);
-  }
-
-  public void incrementVariables() {
-    variablesProp.increment();
   }
 }

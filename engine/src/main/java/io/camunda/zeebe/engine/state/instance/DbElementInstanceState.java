@@ -23,45 +23,27 @@ import io.camunda.zeebe.protocol.ZbColumnFamilies;
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceRecord;
 import io.camunda.zeebe.protocol.record.intent.ProcessInstanceIntent;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 import org.agrona.DirectBuffer;
-import org.agrona.collections.LongLruCache;
 import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 
 public final class DbElementInstanceState implements MutableElementInstanceState {
 
-  private final Map<Long, ElementInstance> cachedElementInstance = new HashMap<>();
   private final ColumnFamily<DbCompositeKey<DbForeignKey<DbLong>, DbForeignKey<DbLong>>, DbNil>
       parentChildColumnFamily;
   private final DbCompositeKey<DbForeignKey<DbLong>, DbForeignKey<DbLong>> parentChildKey;
   private final DbForeignKey<DbLong> parentKey;
+
   private final DbLong elementInstanceKey;
   private final ElementInstance elementInstance;
   private final ColumnFamily<DbLong, ElementInstance> elementInstanceColumnFamily;
-  private final LongLruCache<Long> elementInstanceKeyLRU =
-      new LongLruCache<>(
-          2,
-          k -> {
-            var elementInstance = cachedElementInstance.get(k);
-            if (elementInstance != null) {
-              return k;
-            }
 
-            elementInstance = getElementInstance(k);
-            if (elementInstance != null) {
-              cachedElementInstance.put(k, elementInstance);
-              return k;
-            }
-            return null;
-          },
-          cachedElementInstance::remove);
   private final AwaitProcessInstanceResultMetadata awaitResultMetadata;
   private final ColumnFamily<DbLong, AwaitProcessInstanceResultMetadata>
       awaitProcessInstanceResultMetadataColumnFamily;
+
   private final DbLong flowScopeKey = new DbLong();
   private final DbString gatewayElementId = new DbString();
   private final DbString sequenceFlowElementId = new DbString();
@@ -145,7 +127,6 @@ public final class DbElementInstanceState implements MutableElementInstanceState
     final ElementInstance instance;
     if (parent == null) {
       instance = new ElementInstance(key, state, value);
-      instance.setVariables(0);
     } else {
       instance = new ElementInstance(key, parent, state, value);
       updateInstance(parent);
@@ -158,27 +139,21 @@ public final class DbElementInstanceState implements MutableElementInstanceState
   @Override
   public void removeInstance(final long key) {
     elementInstanceKey.wrapLong(key);
-
-    elementInstanceKeyLRU.lookup(key);
-    final var instance = cachedElementInstance.get(key);
+    final var instance = elementInstanceColumnFamily.get(elementInstanceKey);
     if (instance == null) {
       return;
     }
-
     final long parent = instance.getParentKey();
     parentKey.inner().wrapLong(parent);
     parentChildColumnFamily.deleteIfExists(parentChildKey);
-    variableState.removeScope(key);
     elementInstanceColumnFamily.deleteExisting(elementInstanceKey);
+    variableState.removeScope(key);
     awaitProcessInstanceResultMetadataColumnFamily.deleteIfExists(elementInstanceKey);
-    // removeNumberOfTakenSequenceFlows(key);
+    removeNumberOfTakenSequenceFlows(key);
 
     if (parent > 0) {
       elementInstanceKey.wrapLong(parent);
-
-      elementInstanceKeyLRU.lookup(parent);
-      final var parentInstance = cachedElementInstance.get(parent);
-
+      final var parentInstance = elementInstanceColumnFamily.get(elementInstanceKey);
       if (parentInstance == null) {
         final var errorMsg =
             "Expected to find parent instance for element instance with key %d, but none was found.";
@@ -187,8 +162,6 @@ public final class DbElementInstanceState implements MutableElementInstanceState
       parentInstance.decrementChildCount();
       updateInstance(parentInstance);
     }
-
-    cachedElementInstance.remove(key);
   }
 
   @Override
@@ -199,10 +172,6 @@ public final class DbElementInstanceState implements MutableElementInstanceState
     elementInstanceColumnFamily.insert(elementInstanceKey, instance);
     parentChildColumnFamily.insert(parentChildKey, DbNil.INSTANCE);
     variableState.createScope(elementInstanceKey.getValue(), parentKey.inner().getValue());
-
-    final var copy = copyElementInstance(instance);
-    cachedElementInstance.put(instance.getKey(), copy);
-    elementInstanceKeyLRU.lookup(instance.getKey());
   }
 
   @Override
@@ -215,8 +184,7 @@ public final class DbElementInstanceState implements MutableElementInstanceState
   @Override
   public void updateInstance(final long key, final Consumer<ElementInstance> modifier) {
     elementInstanceKey.wrapLong(key);
-    elementInstanceKeyLRU.lookup(key);
-    final var scopeInstance = cachedElementInstance.get(key);
+    final var scopeInstance = elementInstanceColumnFamily.get(elementInstanceKey);
     modifier.accept(scopeInstance);
     updateInstance(scopeInstance);
   }
@@ -270,8 +238,9 @@ public final class DbElementInstanceState implements MutableElementInstanceState
 
   @Override
   public ElementInstance getInstance(final long key) {
-    elementInstanceKeyLRU.lookup(key);
-    return cachedElementInstance.get(key);
+    elementInstanceKey.wrapLong(key);
+    final ElementInstance elementInstance = elementInstanceColumnFamily.get(elementInstanceKey);
+    return copyElementInstance(elementInstance);
   }
 
   @Override
@@ -315,16 +284,6 @@ public final class DbElementInstanceState implements MutableElementInstanceState
         });
 
     return count.get();
-  }
-
-  private ElementInstance getElementInstance(final long key) {
-    if (key > 0) {
-      elementInstanceKey.wrapLong(key);
-      final ElementInstance elementInstance = elementInstanceColumnFamily.get(elementInstanceKey);
-      return copyElementInstance(elementInstance);
-    } else {
-      return null;
-    }
   }
 
   private ElementInstance copyElementInstance(final ElementInstance elementInstance) {

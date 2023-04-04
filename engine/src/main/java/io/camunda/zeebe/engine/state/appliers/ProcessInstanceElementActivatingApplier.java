@@ -51,15 +51,7 @@ final class ProcessInstanceElementActivatingApplier
     createEventScope(elementInstanceKey, value);
     cleanupSequenceFlowsTaken(value);
 
-    final var flowScopeKey = value.getFlowScopeKey();
-    final ElementInstance flowScopeInstance;
-
-    if (flowScopeKey > 0) {
-      flowScopeInstance = elementInstanceState.getInstance(flowScopeKey);
-    } else {
-      flowScopeInstance = null;
-    }
-
+    final var flowScopeInstance = elementInstanceState.getInstance(value.getFlowScopeKey());
     elementInstanceState.newInstance(
         flowScopeInstance, elementInstanceKey, value, ProcessInstanceIntent.ELEMENT_ACTIVATING);
 
