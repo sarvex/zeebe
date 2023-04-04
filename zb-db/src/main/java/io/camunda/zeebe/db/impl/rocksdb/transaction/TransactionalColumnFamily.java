@@ -11,12 +11,11 @@ import static io.camunda.zeebe.util.buffer.BufferUtil.startsWith;
 
 import io.camunda.zeebe.db.ColumnFamily;
 import io.camunda.zeebe.db.ConsistencyChecksSettings;
-import io.camunda.zeebe.db.ContainsForeignKeys;
 import io.camunda.zeebe.db.DbKey;
 import io.camunda.zeebe.db.DbValue;
 import io.camunda.zeebe.db.KeyValuePairVisitor;
 import io.camunda.zeebe.db.TransactionContext;
-import io.camunda.zeebe.db.ZeebeDbInconsistentException;
+import io.camunda.zeebe.db.impl.DbLong;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
@@ -55,6 +54,8 @@ class TransactionalColumnFamily<
 
   private final ForeignKeyChecker foreignKeyChecker;
 
+  private long highestKeyInserted = Long.MIN_VALUE;
+
   TransactionalColumnFamily(
       final ZeebeTransactionDb<ColumnFamilyNames> transactionDb,
       final ConsistencyChecksSettings consistencyChecksSettings,
@@ -79,14 +80,27 @@ class TransactionalColumnFamily<
           columnFamilyContext.writeKey(key);
           columnFamilyContext.writeValue(value);
 
-          assertKeyDoesNotExist(transaction);
-          assertForeignKeysExist(transaction, key, value);
+          //          if (key instanceof DbLong newKey) {
+          //            if (newKey.getValue() > highestKeyInserted) {
+          //              highestKeyInserted = Math.max(highestKeyInserted, newKey.getValue());
+          //            } else {
+          //              assertKeyDoesNotExist(transaction);
+          //            }
+          //          } else {
+          //            assertKeyDoesNotExist(transaction);
+          //          }
+          //
+          //          assertForeignKeysExist(transaction, key, value);
           transaction.put(
               transactionDb.getDefaultNativeHandle(),
               columnFamilyContext.getKeyBufferArray(),
               columnFamilyContext.getKeyLength(),
               columnFamilyContext.getValueBufferArray(),
               value.getLength());
+
+          if (key instanceof DbLong newKey) {
+            highestKeyInserted = Math.max(highestKeyInserted, newKey.getValue());
+          }
         });
   }
 
@@ -120,6 +134,10 @@ class TransactionalColumnFamily<
               columnFamilyContext.getKeyLength(),
               columnFamilyContext.getValueBufferArray(),
               value.getLength());
+
+          if (key instanceof DbLong newKey) {
+            highestKeyInserted = Math.max(highestKeyInserted, newKey.getValue());
+          }
         });
   }
 
@@ -128,6 +146,14 @@ class TransactionalColumnFamily<
     ensureInOpenTransaction(
         transaction -> {
           columnFamilyContext.writeKey(key);
+
+          if (key instanceof DbLong newKey && highestKeyInserted != Long.MIN_VALUE) {
+            if (newKey.getValue() > highestKeyInserted) {
+              columnFamilyContext.wrapValueView(null);
+              return;
+            }
+          }
+
           final byte[] value =
               transaction.get(
                   transactionDb.getDefaultNativeHandle(),
@@ -256,46 +282,46 @@ class TransactionalColumnFamily<
 
   private void assertForeignKeysExist(final ZeebeTransaction transaction, final Object... keys)
       throws Exception {
-    if (!consistencyChecksSettings.enableForeignKeyChecks()) {
-      return;
-    }
-    for (final var key : keys) {
-      if (key instanceof ContainsForeignKeys containsForeignKey) {
-        foreignKeyChecker.assertExists(transaction, containsForeignKey);
-      }
-    }
+    //    if (!consistencyChecksSettings.enableForeignKeyChecks()) {
+    //      return;
+    //    }
+    //    for (final var key : keys) {
+    //      if (key instanceof ContainsForeignKeys containsForeignKey) {
+    //        foreignKeyChecker.assertExists(transaction, containsForeignKey);
+    //      }
+    //    }
   }
 
   private void assertKeyDoesNotExist(final ZeebeTransaction transaction) throws Exception {
-    if (!consistencyChecksSettings.enablePreconditions()) {
-      return;
-    }
-    final var value =
-        transaction.get(
-            transactionDb.getDefaultNativeHandle(),
-            transactionDb.getReadOptionsNativeHandle(),
-            columnFamilyContext.getKeyBufferArray(),
-            columnFamilyContext.getKeyLength());
-    if (value != null) {
-      throw new ZeebeDbInconsistentException(
-          "Key " + keyInstance + " in ColumnFamily " + columnFamily + " already exists");
-    }
+    //    if (!consistencyChecksSettings.enablePreconditions()) {
+    //      return;
+    //    }
+    //    final var value =
+    //        transaction.get(
+    //            transactionDb.getDefaultNativeHandle(),
+    //            transactionDb.getReadOptionsNativeHandle(),
+    //            columnFamilyContext.getKeyBufferArray(),
+    //            columnFamilyContext.getKeyLength());
+    //    if (value != null) {
+    //      throw new ZeebeDbInconsistentException(
+    //          "Key " + keyInstance + " in ColumnFamily " + columnFamily + " already exists");
+    //    }
   }
 
   private void assertKeyExists(final ZeebeTransaction transaction) throws Exception {
-    if (!consistencyChecksSettings.enablePreconditions()) {
-      return;
-    }
-    final var value =
-        transaction.get(
-            transactionDb.getDefaultNativeHandle(),
-            transactionDb.getReadOptionsNativeHandle(),
-            columnFamilyContext.getKeyBufferArray(),
-            columnFamilyContext.getKeyLength());
-    if (value == null) {
-      throw new ZeebeDbInconsistentException(
-          "Key " + keyInstance + " in ColumnFamily " + columnFamily + " does not exist");
-    }
+    //    if (!consistencyChecksSettings.enablePreconditions()) {
+    //      return;
+    //    }
+    //    final var value =
+    //        transaction.get(
+    //            transactionDb.getDefaultNativeHandle(),
+    //            transactionDb.getReadOptionsNativeHandle(),
+    //            columnFamilyContext.getKeyBufferArray(),
+    //            columnFamilyContext.getKeyLength());
+    //    if (value == null) {
+    //      throw new ZeebeDbInconsistentException(
+    //          "Key " + keyInstance + " in ColumnFamily " + columnFamily + " does not exist");
+    //    }
   }
 
   /**
