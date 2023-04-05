@@ -160,7 +160,6 @@ public class EnginePerformanceTest {
         RecordingExporter.processInstanceRecords()
             .withIntent(ProcessInstanceIntent.ELEMENT_ACTIVATED)
             .withElementType(BpmnElementType.PROCESS)
-            .limit(200 + 5) // iteration + warmup
             .count();
 
     LoggerFactory.getLogger("io.camunda.zeebe.engine.perf")
