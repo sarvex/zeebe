@@ -48,12 +48,12 @@ import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 import org.slf4j.LoggerFactory;
 
-@Warmup(iterations = 5, time = 1, timeUnit = TimeUnit.MILLISECONDS)
-@Measurement(iterations = 200, time = 1, timeUnit = TimeUnit.MILLISECONDS)
+@Warmup(iterations = 100, time = 1, timeUnit = TimeUnit.SECONDS)
+@Measurement(iterations = 200, time = 1, timeUnit = TimeUnit.SECONDS)
 // @Fork(value = 3, jvmArgsAppend = {"-XX:+UseParallelGC", "-Xms1g", "-Xmx1g"})
 @Fork(value = 1)
 @BenchmarkMode(Mode.Throughput)
-@OutputTimeUnit(TimeUnit.MILLISECONDS)
+@OutputTimeUnit(TimeUnit.SECONDS)
 @State(org.openjdk.jmh.annotations.Scope.Benchmark)
 public class EnginePerformanceTest {
 
