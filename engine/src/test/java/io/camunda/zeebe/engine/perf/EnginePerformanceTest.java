@@ -7,17 +7,20 @@
  */
 package io.camunda.zeebe.engine.perf;
 
+import io.camunda.zeebe.db.ConsistencyChecksSettings;
+import io.camunda.zeebe.db.impl.rocksdb.RocksDbConfiguration;
+import io.camunda.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.camunda.zeebe.engine.perf.EngineRule.ProcessingExporterTransistor;
 import io.camunda.zeebe.engine.perf.EngineRule.ReprocessingCompletedListener;
 import io.camunda.zeebe.engine.processing.EngineProcessors;
 import io.camunda.zeebe.engine.processing.message.command.SubscriptionCommandSender;
 import io.camunda.zeebe.engine.processing.streamprocessor.JobStreamer;
-import io.camunda.zeebe.engine.state.DefaultZeebeDbFactory;
 import io.camunda.zeebe.engine.util.StreamProcessingComposite;
 import io.camunda.zeebe.engine.util.TestStreams;
 import io.camunda.zeebe.engine.util.client.DeploymentClient;
 import io.camunda.zeebe.engine.util.client.ProcessInstanceClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
+import io.camunda.zeebe.protocol.ZbColumnFamilies;
 import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord;
 import io.camunda.zeebe.protocol.record.Record;
 import io.camunda.zeebe.protocol.record.intent.JobIntent;
@@ -109,9 +112,13 @@ public class EnginePerformanceTest {
 
     testStreams.createLogStream("stream-1", 1);
 
+    // enable consistency checks for tests
+    final var consistencyChecks = new ConsistencyChecksSettings(true, true);
+    final var zbFactory =
+        new ZeebeRocksDbFactory<ZbColumnFamilies>(
+            new RocksDbConfiguration().setMemoryLimit(5 * 1024), consistencyChecks);
     streamProcessingComposite =
-        new StreamProcessingComposite(
-            testStreams, 1, DefaultZeebeDbFactory.defaultFactory(), actorScheduler);
+        new StreamProcessingComposite(testStreams, 1, zbFactory, actorScheduler);
 
     // engine
     final DeploymentRecord deploymentRecord = new DeploymentRecord();
