@@ -58,17 +58,18 @@ import org.slf4j.LoggerFactory;
 public class EnginePerformanceTest {
 
   // BASE
+  //  INFO  io.camunda.zeebe.engine.perf - Started 10720 process instances
+  //
   //  Result "io.camunda.zeebe.engine.perf.EnginePerformanceTest.measureProcessExecutionTime":
-  //      0.370 ±(99.9%) 0.029 ops/ms [Average]
-  //      (min, avg, max) = (0.088, 0.370, 0.670), stdev = 0.125
-  //  CI (99.9%): [0.340, 0.399] (assumes normal distribution)
+  //      20.182 ±(99.9%) 0.868 ops/s [Average]
+  //      (min, avg, max) = (12.536, 20.182, 29.170), stdev = 3.674
+  //  CI (99.9%): [19.314, 21.050] (assumes normal distribution)
   //
-  //  # Run complete. Total time: 00:00:04
   //
-  //  Benchmark                                           Mode  Cnt  Score   Error   Units
-  //  EnginePerformanceTest.measureProcessExecutionTime  thrpt  200  0.370 ± 0.029  ops/ms
+  //      # Run complete. Total time: 00:05:15
   //
-  //  Process finished with exit code 0
+  //  Benchmark                                           Mode  Cnt   Score   Error  Units
+  //  EnginePerformanceTest.measureProcessExecutionTime  thrpt  200  20.182 ± 0.868  ops/s
 
   //  BIG STATE
   //  Result "io.camunda.zeebe.engine.perf.EnginePerformanceTest.measureProcessExecutionTime":
