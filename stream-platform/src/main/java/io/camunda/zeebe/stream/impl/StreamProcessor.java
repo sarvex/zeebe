@@ -30,6 +30,7 @@ import io.camunda.zeebe.util.exception.UnrecoverableException;
 import io.camunda.zeebe.util.health.FailureListener;
 import io.camunda.zeebe.util.health.HealthMonitorable;
 import io.camunda.zeebe.util.health.HealthReport;
+import io.prometheus.client.Histogram.Timer;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -111,6 +112,7 @@ public class StreamProcessor extends Actor implements HealthMonitorable, LogReco
   private ProcessingScheduleServiceImpl asyncScheduleService;
   private AsyncProcessingScheduleServiceActor asyncActor;
   private final int nodeId;
+  private Timer healthCheckTimer;
 
   protected StreamProcessor(final StreamProcessorBuilder processorBuilder) {
     actorSchedulingService = processorBuilder.getActorSchedulingService();
@@ -276,8 +278,13 @@ public class StreamProcessor extends Actor implements HealthMonitorable, LogReco
   }
 
   private void healthCheckTick() {
+    if (healthCheckTimer != null) {
+      healthCheckTimer.close();
+    }
+
     lastTickTime = ActorClock.currentTimeMillis();
     actor.schedule(HEALTH_CHECK_TICK_DURATION, this::healthCheckTick);
+    healthCheckTimer = metrics.timerTimer();
   }
 
   private void chainSteps(final int index, final Step[] steps, final Runnable last) {

@@ -39,6 +39,14 @@ public final class StreamProcessorMetrics {
           .labelNames(LABEL_NAME_PARTITION)
           .register();
 
+  private static final Histogram TIMER_LATENCY =
+      Histogram.build()
+          .namespace(NAMESPACE)
+          .name("stream_processor_health_timer_latency")
+          .help("Time between a timer is scheduled and executed")
+          .labelNames(LABEL_NAME_PARTITION)
+          .register();
+
   private static final Histogram PROCESSING_LATENCY =
       Histogram.build()
           .namespace(NAMESPACE)
@@ -74,6 +82,10 @@ public final class StreamProcessorMetrics {
 
   public void processingLatency(final long written, final long processed) {
     PROCESSING_LATENCY.labels(partitionIdLabel).observe((processed - written) / 1000f);
+  }
+
+  public Histogram.Timer timerTimer() {
+    return TIMER_LATENCY.labels(partitionIdLabel).startTimer();
   }
 
   public Histogram.Timer startProcessingDurationTimer(final RecordType recordType) {
