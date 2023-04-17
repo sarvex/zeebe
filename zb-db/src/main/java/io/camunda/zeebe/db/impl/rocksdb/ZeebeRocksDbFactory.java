@@ -102,7 +102,7 @@ public final class ZeebeRocksDbFactory<ColumnFamilyType extends Enum<ColumnFamil
             // keep 1 hour of logs - completely arbitrary. we should keep what we think would be
             // a good balance between useful for performance and small for replication
             .setLogFileTimeToRoll(Duration.ofMinutes(30).toSeconds())
-            .setKeepLogFileNum(2);
+            .setKeepLogFileNum(8);
 
     // limit I/O writes
     if (rocksDbConfiguration.getIoRateBytesPerSecond() > 0) {
@@ -197,7 +197,7 @@ public final class ZeebeRocksDbFactory<ColumnFamilyType extends Enum<ColumnFamil
         .setWriteBufferSize(memtableMemory)
         // compaction
         .setLevelCompactionDynamicLevelBytes(true)
-        .setCompactionPriority(CompactionPriority.OldestSmallestSeqFirst)
+        .setCompactionPriority(CompactionPriority.OldestLargestSeqFirst)
         .setCompactionStyle(CompactionStyle.LEVEL)
         // L-0 means immediately flushed memtables
         .setLevel0FileNumCompactionTrigger(maxConcurrentMemtableCount)
