@@ -23,6 +23,7 @@ import io.camunda.zeebe.protocol.record.Record;
 import io.camunda.zeebe.protocol.record.intent.JobIntent;
 import io.camunda.zeebe.protocol.record.intent.ProcessInstanceIntent;
 import io.camunda.zeebe.protocol.record.value.BpmnElementType;
+import io.camunda.zeebe.protocol.record.value.JobRecordValue;
 import io.camunda.zeebe.scheduler.ActorScheduler;
 import io.camunda.zeebe.scheduler.clock.DefaultActorClock;
 import io.camunda.zeebe.stream.impl.StreamProcessorMode;
@@ -173,11 +174,15 @@ public class EnginePerformanceTest {
     final long piKey =
         new ProcessInstanceClient(streamProcessingComposite).ofBpmnProcessId("process").create();
 
-    return RecordingExporter.jobRecords()
-        .withIntent(JobIntent.CREATED)
-        .withType("task")
-        .withProcessInstanceKey(piKey)
-        .getFirst();
+    final Record<JobRecordValue> task =
+        RecordingExporter.jobRecords()
+            .withIntent(JobIntent.CREATED)
+            .withType("task")
+            .withProcessInstanceKey(piKey)
+            .getFirst();
+
+    RecordingExporter.reset();
+    return task;
     // TODO benchmark with completion
     //    new
     // JobClient(streamProcessingComposite).withKey(job.getKey()).withType("task").complete();
