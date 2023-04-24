@@ -42,6 +42,11 @@ public interface ZeebeDb<ColumnFamilyType extends Enum<ColumnFamilyType>> extend
           KeyType keyInstance,
           ValueType valueInstance);
 
+
+  public <KEY, VALUE> NewColumnFamily<KEY, VALUE> newCreateColumnFamily(
+      final ColumnFamilyType columnFamily, final TransactionContext context);
+
+
   /**
    * Creates a snapshot of the current database in the given directory.
    *

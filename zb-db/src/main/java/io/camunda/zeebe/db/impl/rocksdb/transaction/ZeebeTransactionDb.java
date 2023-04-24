@@ -11,6 +11,7 @@ import io.camunda.zeebe.db.ColumnFamily;
 import io.camunda.zeebe.db.ConsistencyChecksSettings;
 import io.camunda.zeebe.db.DbKey;
 import io.camunda.zeebe.db.DbValue;
+import io.camunda.zeebe.db.NewColumnFamily;
 import io.camunda.zeebe.db.TransactionContext;
 import io.camunda.zeebe.db.ZeebeDb;
 import io.camunda.zeebe.db.ZeebeDbException;
@@ -129,6 +130,13 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
           final ValueType valueInstance) {
     return new TransactionalColumnFamily<>(
         this, consistencyChecksSettings, columnFamily, context, keyInstance, valueInstance);
+  }
+
+  @Override
+  public <KEY, VALUE> NewColumnFamily<KEY, VALUE> newCreateColumnFamily(
+      final ColumnFamilyNames columnFamily, final TransactionContext context) {
+    return new NewTransactionalColumnFamily<>(
+        this, consistencyChecksSettings, columnFamily, context);
   }
 
   @Override

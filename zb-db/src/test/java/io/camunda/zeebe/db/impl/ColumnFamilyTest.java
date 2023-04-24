@@ -45,6 +45,42 @@ public final class ColumnFamilyTest {
   }
 
   @Test
+  public void shouldUseNewAPI() {
+    // given
+    final var stringStringNewColumnFamily =
+        zeebeDb.<String, String>newCreateColumnFamily(
+            DefaultColumnFamily.DEFAULT, zeebeDb.createContext());
+
+    // when
+    stringStringNewColumnFamily.insert("hallo", "du");
+
+    // then
+    final String value = stringStringNewColumnFamily.get("hallo");
+    assertThat(value).isEqualTo("du");
+  }
+
+  @Test
+  public void shouldUseOldAPI() {
+    // given
+    final DbString keyString = new DbString();
+    final DbString valueString = new DbString();
+    final var stringStringCF =
+        zeebeDb.createColumnFamily(
+            DefaultColumnFamily.DEFAULT, zeebeDb.createContext(), keyString, valueString);
+
+    // when
+    keyString.wrapString("hallo");
+    valueString.wrapString("du");
+    stringStringCF.insert(keyString, valueString);
+    valueString.wrapString("test");
+
+    // then
+    final var value = stringStringCF.get(keyString);
+    assertThat(value.toString()).isEqualTo("du");
+    assertThat(valueString.toString()).isEqualTo("du");
+  }
+
+  @Test
   public void shouldInsertValue() {
     // given
     key.wrapLong(1213);
