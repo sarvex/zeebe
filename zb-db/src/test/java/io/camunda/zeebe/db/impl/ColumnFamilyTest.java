@@ -14,6 +14,7 @@ import io.camunda.zeebe.db.ColumnFamily;
 import io.camunda.zeebe.db.ZeebeDb;
 import io.camunda.zeebe.db.ZeebeDbFactory;
 import io.camunda.zeebe.db.ZeebeDbInconsistentException;
+import io.camunda.zeebe.db.impl.rocksdb.transaction.StringStringComposite;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -78,6 +79,43 @@ public final class ColumnFamilyTest {
     final var value = stringStringCF.get(keyString);
     assertThat(value.toString()).isEqualTo("du");
     assertThat(valueString.toString()).isEqualTo("du");
+  }
+
+  @Test
+  public void shouldUseOldAPICompositeKeys() {
+    // given
+    final DbString firstKey = new DbString();
+    final DbString secondKey = new DbString();
+    final DbString stringValue = new DbString();
+    final var compositeKey = new DbCompositeKey<>(firstKey, secondKey);
+    final var stringStringCF =
+        zeebeDb.createColumnFamily(
+            DefaultColumnFamily.DEFAULT, zeebeDb.createContext(), compositeKey, stringValue);
+
+    // when
+    firstKey.wrapString("hallo");
+    secondKey.wrapString("du");
+    stringValue.wrapString("!!!");
+    stringStringCF.insert(compositeKey, stringValue);
+
+    // then
+    final var value = stringStringCF.get(compositeKey);
+    assertThat(value.toString()).isEqualTo("!!!");
+  }
+
+  @Test
+  public void shouldUseNewAPICompositeKeys() {
+    // given
+    final var stringStringCF =
+        zeebeDb.<StringStringComposite, String>newCreateColumnFamily(
+            DefaultColumnFamily.DEFAULT, zeebeDb.createContext());
+
+    // when
+    stringStringCF.insert(StringStringComposite.of("hallo", "du"), "!!!");
+
+    // then
+    final var value = stringStringCF.get(StringStringComposite.of("hallo", "du"));
+    assertThat(value).isEqualTo("!!!");
   }
 
   @Test

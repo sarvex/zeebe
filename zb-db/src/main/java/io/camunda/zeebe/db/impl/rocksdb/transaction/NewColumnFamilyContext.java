@@ -7,11 +7,8 @@
  */
 package io.camunda.zeebe.db.impl.rocksdb.transaction;
 
-import static io.camunda.zeebe.db.impl.ZeebeDbConstants.ZB_DB_BYTE_ORDER;
-
 import io.camunda.zeebe.db.DbKey;
 import io.camunda.zeebe.db.impl.ZeebeDbConstants;
-import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,7 +16,6 @@ import java.util.Queue;
 import java.util.function.ObjIntConsumer;
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableArrayBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 public class NewColumnFamilyContext<KeyType, ValueType> {
@@ -28,6 +24,7 @@ public class NewColumnFamilyContext<KeyType, ValueType> {
 
   static {
     encoderDecoderMap.put(String.class, new StringEncoderDecoder());
+    encoderDecoderMap.put(StringStringComposite.class, new StringStringCompositeEncoderDecoder());
   }
 
   // we can also simply use one buffer
@@ -130,49 +127,17 @@ public class NewColumnFamilyContext<KeyType, ValueType> {
     }
   }
 
-  ByteBuffer keyWithColumnFamily(final DbKey key) {
-    final var bytes = ByteBuffer.allocate(Long.BYTES + key.getLength());
-    final var buffer = new UnsafeBuffer(bytes);
-
-    buffer.putLong(0, columnFamilyPrefix, ZeebeDbConstants.ZB_DB_BYTE_ORDER);
-    key.write(buffer, Long.BYTES);
-    return bytes;
-  }
+  //  ByteBuffer keyWithColumnFamily(final DbKey key) {
+  //    final var bytes = ByteBuffer.allocate(Long.BYTES + key.getLength());
+  //    final var buffer = new UnsafeBuffer(bytes);
+  //
+  //    buffer.putLong(0, columnFamilyPrefix, ZeebeDbConstants.ZB_DB_BYTE_ORDER);
+  //    key.write(buffer, Long.BYTES);
+  //    return bytes;
+  //  }
 
   public ValueType getValue() {
     return (ValueType)
         encoderDecoderMap.get(valueClass).read(valueViewBuffer, 0, valueViewBuffer.capacity());
-  }
-
-  public static class StringEncoderDecoder implements TypeEncoderDecoder<String> {
-    @Override
-    public int write(final MutableDirectBuffer buffer, int offset, final String typeObject) {
-
-      final byte[] bytes = typeObject.getBytes();
-      final int length = bytes.length;
-      buffer.putInt(offset, length, ZB_DB_BYTE_ORDER);
-      offset += Integer.BYTES;
-
-      buffer.putBytes(offset, bytes, 0, length);
-      return offset + length;
-    }
-
-    @Override
-    public String read(final DirectBuffer buffer, int offset, final int length) {
-
-      final int stringLen = buffer.getInt(offset, ZB_DB_BYTE_ORDER);
-      offset += Integer.BYTES;
-
-      final byte[] b = new byte[stringLen];
-      buffer.getBytes(offset, b);
-      return new String(b);
-    }
-  }
-
-  public interface TypeEncoderDecoder<Type> {
-
-    int write(final MutableDirectBuffer buffer, int offset, final Type typeObject);
-
-    Type read(final DirectBuffer buffer, int offset, final int length);
   }
 }
