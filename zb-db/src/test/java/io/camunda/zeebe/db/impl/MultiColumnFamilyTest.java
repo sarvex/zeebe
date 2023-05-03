@@ -13,6 +13,7 @@ import io.camunda.zeebe.db.ColumnFamily;
 import io.camunda.zeebe.db.TransactionContext;
 import io.camunda.zeebe.db.ZeebeDb;
 import io.camunda.zeebe.db.ZeebeDbFactory;
+import io.camunda.zeebe.db.ZeebeDbTransaction;
 import java.io.File;
 import java.util.HashMap;
 import org.junit.Before;
@@ -37,35 +38,39 @@ public final class MultiColumnFamilyTest {
   private DbString otherKey;
   private DbString otherValue;
   private ColumnFamily<DbString, DbString> otherCF;
+  private TransactionContext transactionContext;
 
   @Before
   public void setup() throws Exception {
+
     final File pathName = temporaryFolder.newFolder();
     zeebeDb = dbFactory.createDb(pathName);
+
+    transactionContext = zeebeDb.createContext();
 
     compositeCFFirstKey = new DbLong();
     compositeCFSecondKey = new DbString();
     compositeKey = new DbCompositeKey<>(compositeCFFirstKey, compositeCFSecondKey);
     value = new DbString();
+
     compositeCF =
         zeebeDb.createColumnFamily(
-            ColumnFamilies.COMPOSITE, zeebeDb.createContext(), compositeKey, value);
+            ColumnFamilies.COMPOSITE, transactionContext, compositeKey, value);
 
     defaultKey = new DbLong();
     defaultValue = new DbLong();
     defaultCF =
         zeebeDb.createColumnFamily(
-            ColumnFamilies.DEFAULT, zeebeDb.createContext(), defaultKey, defaultValue);
+            ColumnFamilies.DEFAULT, transactionContext, defaultKey, defaultValue);
 
     otherKey = new DbString();
     otherValue = new DbString();
     otherCF =
-        zeebeDb.createColumnFamily(
-            ColumnFamilies.OTHER, zeebeDb.createContext(), otherKey, otherValue);
+        zeebeDb.createColumnFamily(ColumnFamilies.OTHER, transactionContext, otherKey, otherValue);
   }
 
   @Test
-  public void shouldLoopWhileEqualPrefixEndOfCF() {
+  public void shouldLoopWhileEqualPrefixEndOfCF() throws Exception {
     // given
     upsertInDefaultCF(10, 1);
     upsertInDefaultCF(11, 2);
@@ -80,11 +85,16 @@ public final class MultiColumnFamilyTest {
 
     // when
     final var keyValues = new HashMap<Long, Long>();
-    final TransactionContext context = zeebeDb.createContext();
-    context.runInTransaction(
+    final ZeebeDbTransaction currentTransaction = transactionContext.getCurrentTransaction();
+    currentTransaction.run(
         () -> {
-          defaultCF.forEach((key, value) -> keyValues.put(key.getValue(), value.getValue()));
+          upsertInCompositeCF(114, "12", "be good");
+          upsertInOtherCF("10", "1121");
         });
+
+    // we don't commit, so it is still on going
+    //    currentTransaction.commit();
+    defaultCF.forEach((key, value) -> keyValues.put(key.getValue(), value.getValue()));
 
     // then
     assertThat(keyValues).containsOnlyKeys(10L, 11L).containsValues(1L, 2L);
