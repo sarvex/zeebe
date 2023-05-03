@@ -148,8 +148,8 @@ class TransactionalColumnFamily<
   public void forEach(final Consumer<ValueType> consumer) {
     ensureInOpenTransaction(
         transaction ->
-            forEachInPrefix(
-                new DbNullKey(),
+            forEachWithoutPrefix(
+                DbNullKey.INSTANCE,
                 (k, v) -> {
                   consumer.accept(v);
                   return true;
@@ -160,8 +160,8 @@ class TransactionalColumnFamily<
   public void forEach(final BiConsumer<KeyType, ValueType> consumer) {
     ensureInOpenTransaction(
         transaction ->
-            forEachInPrefix(
-                new DbNullKey(),
+            forEachWithoutPrefix(
+                DbNullKey.INSTANCE,
                 (k, v) -> {
                   consumer.accept(k, v);
                   return true;
@@ -171,12 +171,12 @@ class TransactionalColumnFamily<
   @Override
   public void whileTrue(
       final KeyType startAtKey, final KeyValuePairVisitor<KeyType, ValueType> visitor) {
-    ensureInOpenTransaction(transaction -> forEachInPrefix(startAtKey, new DbNullKey(), visitor));
+    ensureInOpenTransaction(transaction -> forEachWithoutPrefix(startAtKey, visitor));
   }
 
   @Override
   public void whileTrue(final KeyValuePairVisitor<KeyType, ValueType> visitor) {
-    ensureInOpenTransaction(transaction -> forEachInPrefix(new DbNullKey(), visitor));
+    ensureInOpenTransaction(transaction -> forEachWithoutPrefix(DbNullKey.INSTANCE, visitor));
   }
 
   @Override
@@ -252,8 +252,8 @@ class TransactionalColumnFamily<
     final AtomicBoolean isEmpty = new AtomicBoolean(true);
     ensureInOpenTransaction(
         transaction ->
-            forEachInPrefix(
-                new DbNullKey(),
+            forEachWithoutPrefix(
+                DbNullKey.INSTANCE,
                 (key, value) -> {
                   isEmpty.set(false);
                   return false;
@@ -375,6 +375,37 @@ class TransactionalColumnFamily<
                 break;
               }
 
+              shouldVisitNext = visit(keyInstance, valueInstance, visitor, iterator);
+            }
+          }
+        });
+  }
+
+  private void forEachWithoutPrefix(
+      final DbKey startAt, final KeyValuePairVisitor<KeyType, ValueType> visitor) {
+    final var seekTarget = Objects.requireNonNullElse(startAt, DbNullKey.INSTANCE);
+    Objects.requireNonNull(visitor);
+
+    /*
+     * NOTE: it doesn't seem possible in Java RocksDB to set a flexible prefix extractor on
+     * iterators at the moment, so using prefixes seem to be mostly related to skipping files that
+     * do not contain keys with the given prefix (which is useful anyway), but it will still iterate
+     * over all keys contained in those files, so we still need to make sure the key actually
+     * matches the prefix.
+     *
+     * <p>While iterating over subsequent keys we have to validate it.
+     */
+    columnFamilyContext.withPrefixKey(
+        DbNullKey.INSTANCE,
+        (prefixKey, prefixLength) -> {
+          try (final RocksIterator iterator =
+              newIterator(context, transactionDb.getPrefixReadOptions())) {
+
+            boolean shouldVisitNext = true;
+
+            for (iterator.seek(columnFamilyContext.keyWithColumnFamily(seekTarget));
+                iterator.isValid() && shouldVisitNext;
+                iterator.next()) {
               shouldVisitNext = visit(keyInstance, valueInstance, visitor, iterator);
             }
           }
