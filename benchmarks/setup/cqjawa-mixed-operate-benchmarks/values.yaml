@@ -338,6 +338,15 @@ camunda-platform:
       limits:
         cpu: 2000m
         memory: 2Gi
+    env:
+      - name: OPERATE_LOG_APPENDER
+        value: Stackdriver
+      - name: OPERATE_LOG_STACKDRIVER_SERVICENAME
+        value: operate
+      - name: OPERATE_LOG_STACKDRIVER_SERVICEVERSION
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
 
   tasklist:
     enabled: false
