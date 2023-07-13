@@ -312,7 +312,7 @@ camunda-platform:
     # To benefit from that configuration the schedule needs to be configured small enough, like every 15 minutes.
     zeebeIndexMaxSize: 30
     # RetentionPolicy.operateIndexTTL defines after how many days an operate index can be deleted
-    operateIndexTTL: 3
+    operateIndexTTL: 1
     # RetentionPolicy.tasklistIndexTTL defines after how many days a tasklist index can be deleted
     tasklistIndexTTL: 3
 
