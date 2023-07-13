@@ -43,7 +43,7 @@ global:
 # Worker configuration for the to be deployed worker application
 worker:
   # Worker.replicas defines how many replicas of the worker application should be deployed
-  replicas: 3
+  replicas: 1
   # Worker.capacity defines how many jobs the worker should activate and work on
   capacity: 60
 
@@ -52,21 +52,21 @@ starter:
   # Starter.replicas defines how many replicas of the application should be deployed
   replicas: 1
   # Starter.rate defines with which rate process instances should be created by the starter
-  rate: 25
+  rate: 5
 
 # Publisher configuration for the to be deployed publisher application
 publisher:
   # Publisher.replicas defines how many replicas of the application should be deployed
   replicas: 1
   # Publisher.rate defines with which rate message should be published
-  rate: 25
+  rate: 5
 
 # Timer configuration for the to be deployed timer application
 timer:
   # Timer.replicas defines how many replicas of the application should be deployed
   replicas: 1
   # Timer.rate defines with which rate process instances with timers should be created
-  rate: 25
+  rate: 5
 
 # LeaderBalanacing configuration for the auto rebalancing feature, which allows to rebalance periodically the zeebe cluster
 # For more details see https://docs.camunda.io/docs/self-managed/zeebe-deployment/operations/rebalancing/
