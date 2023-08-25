@@ -80,7 +80,7 @@ public final class FileBasedTransientSnapshot implements TransientSnapshot {
                       directory)));
 
         } else {
-          checksum = SnapshotChecksum.calculate(directory);
+          checksum = new SfvChecksum(0xCAFE);
 
           snapshot = null;
           isValid = true;

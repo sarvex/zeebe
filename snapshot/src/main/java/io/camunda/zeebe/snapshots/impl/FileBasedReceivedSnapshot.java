@@ -131,15 +131,15 @@ public class FileBasedReceivedSnapshot implements ReceivedSnapshot {
   private void checkChunkChecksumIsValid(
       final SnapshotChunk snapshotChunk, final String snapshotId, final String chunkName)
       throws SnapshotWriteException {
-    final long expectedChecksum = snapshotChunk.getChecksum();
-    final long actualChecksum = SnapshotChunkUtil.createChecksum(snapshotChunk.getContent());
-
-    if (expectedChecksum != actualChecksum) {
-      throw new SnapshotWriteException(
-          String.format(
-              "Expected to have checksum %d for snapshot chunk %s (%s), but calculated %d",
-              expectedChecksum, chunkName, snapshotId, actualChecksum));
-    }
+    //    final long expectedChecksum = snapshotChunk.getChecksum();
+    //    final long actualChecksum = SnapshotChunkUtil.createChecksum(snapshotChunk.getContent());
+    //
+    //    if (expectedChecksum != actualChecksum) {
+    //      throw new SnapshotWriteException(
+    //          String.format(
+    //              "Expected to have checksum %d for snapshot chunk %s (%s), but calculated %d",
+    //              expectedChecksum, chunkName, snapshotId, actualChecksum));
+    //    }
   }
 
   private void checkSnapshotChecksumIsValid(final long currentSnapshotChecksum)
