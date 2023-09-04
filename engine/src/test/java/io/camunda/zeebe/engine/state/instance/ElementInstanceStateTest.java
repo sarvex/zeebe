@@ -11,6 +11,7 @@ import static io.camunda.zeebe.util.buffer.BufferUtil.wrapString;
 import static java.util.function.Predicate.not;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.zeebe.db.ZeebeDbInconsistentException;
 import io.camunda.zeebe.engine.state.mutable.MutableElementInstanceState;
 import io.camunda.zeebe.engine.state.mutable.MutableProcessingState;
 import io.camunda.zeebe.engine.util.ProcessingStateRule;
@@ -288,7 +289,8 @@ public final class ElementInstanceStateTest {
     final var processInstanceRecord =
         createProcessInstanceRecord().setBpmnElementType(BpmnElementType.PROCESS);
     final var processInstanceKey = 100L;
-    createElementInstance(processInstanceKey, processInstanceRecord, ProcessInstanceIntent.ELEMENT_ACTIVATED);
+    createElementInstance(
+        processInstanceKey, processInstanceRecord, ProcessInstanceIntent.ELEMENT_ACTIVATED);
 
     // when
     final List<Long> processInstanceKeys =
@@ -314,8 +316,10 @@ public final class ElementInstanceStateTest {
             .setProcessDefinitionKey(processDefinitionKey);
     final var processInstanceKey1 = 101L;
     final var processInstanceKey2 = 102L;
-    createElementInstance(processInstanceKey1, processInstanceRecord1, ProcessInstanceIntent.ELEMENT_ACTIVATED);
-    createElementInstance(processInstanceKey2, processInstanceRecord2, ProcessInstanceIntent.ELEMENT_ACTIVATED);
+    createElementInstance(
+        processInstanceKey1, processInstanceRecord1, ProcessInstanceIntent.ELEMENT_ACTIVATED);
+    createElementInstance(
+        processInstanceKey2, processInstanceRecord2, ProcessInstanceIntent.ELEMENT_ACTIVATED);
 
     // when
     final List<Long> processInstanceKeys =
@@ -340,8 +344,10 @@ public final class ElementInstanceStateTest {
             .setProcessDefinitionKey(101L);
     final var processInstanceKey1 = 102L;
     final var processInstanceKey2 = 103L;
-    createElementInstance(processInstanceKey1, processInstanceRecord1, ProcessInstanceIntent.ELEMENT_ACTIVATED);
-    createElementInstance(processInstanceKey2, processInstanceRecord2, ProcessInstanceIntent.ELEMENT_ACTIVATED);
+    createElementInstance(
+        processInstanceKey1, processInstanceRecord1, ProcessInstanceIntent.ELEMENT_ACTIVATED);
+    createElementInstance(
+        processInstanceKey2, processInstanceRecord2, ProcessInstanceIntent.ELEMENT_ACTIVATED);
 
     // when
     final List<Long> processInstanceKeys =
@@ -361,7 +367,8 @@ public final class ElementInstanceStateTest {
             .setBpmnElementType(BpmnElementType.PROCESS)
             .setProcessDefinitionKey(101L);
     final var processInstanceKey = 102L;
-    createElementInstance(processInstanceKey, processInstanceRecord, ProcessInstanceIntent.ELEMENT_ACTIVATED);
+    createElementInstance(
+        processInstanceKey, processInstanceRecord, ProcessInstanceIntent.ELEMENT_ACTIVATED);
 
     // when
     final List<Long> processInstanceKeys =
@@ -380,7 +387,8 @@ public final class ElementInstanceStateTest {
             .setBpmnElementType(BpmnElementType.PROCESS)
             .setProcessDefinitionKey(processDefinitionKey);
     final var processInstanceKey = 101L;
-    createElementInstance(processInstanceKey, processInstanceRecord, ProcessInstanceIntent.ELEMENT_ACTIVATED);
+    createElementInstance(
+        processInstanceKey, processInstanceRecord, ProcessInstanceIntent.ELEMENT_ACTIVATED);
 
     // when
     elementInstanceState.removeInstance(processInstanceKey);
@@ -404,7 +412,8 @@ public final class ElementInstanceStateTest {
     final ProcessInstanceRecord processInstanceRecord =
         createProcessInstanceRecord().setBpmnElementType(BpmnElementType.PROCESS);
     final ElementInstance parentInstance =
-        createElementInstance(parent, processInstanceRecord, ProcessInstanceIntent.ELEMENT_ACTIVATED);
+        createElementInstance(
+            parent, processInstanceRecord, ProcessInstanceIntent.ELEMENT_ACTIVATED);
 
     processingState
         .getVariableState()
@@ -427,12 +436,13 @@ public final class ElementInstanceStateTest {
     final var nonEmptyColumns =
         Arrays.stream(ZbColumnFamilies.values())
             .filter(not(ZbColumnFamilies.KEY::equals))
-            .filter(cf ->
-                ZbColumnFamilies.PROCESS_INSTANCE_KEY_BY_DEFINITION_KEY.equals(cf) ||
-                ZbColumnFamilies.NUMBER_OF_TAKEN_SEQUENCE_FLOWS.equals(cf) ||
-                ZbColumnFamilies.AWAIT_WORKLOW_RESULT.equals(cf) ||
-                ZbColumnFamilies.ELEMENT_INSTANCE_KEY.equals(cf) ||
-                ZbColumnFamilies.ELEMENT_INSTANCE_PARENT_CHILD.equals(cf))
+            .filter(
+                cf ->
+                    ZbColumnFamilies.PROCESS_INSTANCE_KEY_BY_DEFINITION_KEY.equals(cf)
+                        || ZbColumnFamilies.NUMBER_OF_TAKEN_SEQUENCE_FLOWS.equals(cf)
+                        || ZbColumnFamilies.AWAIT_WORKLOW_RESULT.equals(cf)
+                        || ZbColumnFamilies.ELEMENT_INSTANCE_KEY.equals(cf)
+                        || ZbColumnFamilies.ELEMENT_INSTANCE_PARENT_CHILD.equals(cf))
             .filter(not(processingState::isEmpty))
             .collect(Collectors.toList());
 
@@ -445,7 +455,8 @@ public final class ElementInstanceStateTest {
     final var processInstanceRecord =
         createProcessInstanceRecord().setBpmnElementType(BpmnElementType.PROCESS);
     final var processInstanceKey = 100L;
-    createElementInstance(processInstanceKey, processInstanceRecord, ProcessInstanceIntent.ELEMENT_ACTIVATED);
+    createElementInstance(
+        processInstanceKey, processInstanceRecord, ProcessInstanceIntent.ELEMENT_ACTIVATED);
 
     // when
     final var hasRunningInstances =
@@ -489,6 +500,21 @@ public final class ElementInstanceStateTest {
     // then
     assertThat(metadata.getRequestId()).isEqualTo(requestId);
     assertThat(metadata.getRequestStreamId()).isEqualTo(streamId);
+  }
+
+  @Test
+  public void shouldThrowAnErrorIfForeignKeyIsNotPresent() {
+    // given
+    final var processInstanceRecord =
+        createProcessInstanceRecord().setBpmnElementType(BpmnElementType.PROCESS);
+    final var processInstanceKey = 100L;
+    Assertions.assertThatThrownBy(
+            () ->
+                elementInstanceState.newInstance(
+                    processInstanceKey,
+                    processInstanceRecord,
+                    ProcessInstanceIntent.ELEMENT_ACTIVATED))
+        .isInstanceOf(ZeebeDbInconsistentException.class);
   }
 
   private void assertElementInstance(final ElementInstance elementInstance, final int childCount) {
@@ -547,17 +573,17 @@ public final class ElementInstanceStateTest {
     assertThat(record.getBpmnElementType()).isEqualTo(BpmnElementType.START_EVENT);
   }
 
-  private ElementInstance createElementInstance(final long processInstanceKey, final ProcessInstanceRecord processInstanceRecord, final ProcessInstanceIntent instanceIntent) {
+  private ElementInstance createElementInstance(
+      final long processInstanceKey,
+      final ProcessInstanceRecord processInstanceRecord,
+      final ProcessInstanceIntent instanceIntent) {
     createProcessInstance(processInstanceRecord.getProcessDefinitionKey(), processInstanceRecord);
     return elementInstanceState.newInstance(
         processInstanceKey, processInstanceRecord, instanceIntent);
-
   }
 
   private void createProcessInstance(final long key, final ProcessInstanceRecord record) {
-    stateRule.getProcessingState()
-        .getProcessState()
-        .putProcess(key, createProcessRecord(record));
+    stateRule.getProcessingState().getProcessState().putProcess(key, createProcessRecord(record));
   }
 
   private ProcessRecord createProcessRecord(final ProcessInstanceRecord record) {
