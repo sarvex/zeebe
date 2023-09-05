@@ -199,7 +199,9 @@ public final class JobWorkerImpl implements JobWorker, Closeable {
     if (jobStreamer.isOpen() && activatedJobs == 0) {
       // to keep polling requests to a minimum, if streaming is enabled, and the response is empty,
       // we back off on poll success responses.
-      backoff(jobPoller);
+      getPollInterval();
+//      releaseJobPoller(jobPoller);
+      schedulePoll();
       LOG.trace("No jobs to activate via polling, will backoff and poll in {}", pollInterval);
     } else {
       pollInterval = initialPollInterval;
