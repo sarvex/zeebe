@@ -194,7 +194,8 @@ public final class JobWorkerImpl implements JobWorker, Closeable {
     // first release, then lookup remaining jobs, to allow handleJobFinished() to poll
     releaseJobPoller(jobPoller);
     final int actualRemainingJobs = remainingJobs.addAndGet(activatedJobs);
-
+    LOG.trace(
+        "JobStreamer is open = {}, activated jobs is {}", jobStreamer.isOpen(), activatedJobs);
     if (jobStreamer.isOpen() && activatedJobs == 0) {
       // to keep polling requests to a minimum, if streaming is enabled, and the response is empty,
       // we back off on poll success responses.
