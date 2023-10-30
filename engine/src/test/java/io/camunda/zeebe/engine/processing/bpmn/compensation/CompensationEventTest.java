@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
 import io.camunda.zeebe.engine.util.EngineRule;
+import io.camunda.zeebe.protocol.Protocol;
 import io.camunda.zeebe.protocol.record.Record;
 import io.camunda.zeebe.protocol.record.intent.ProcessInstanceIntent;
 import io.camunda.zeebe.protocol.record.intent.ProcessIntent;
@@ -59,9 +60,11 @@ public class CompensationEventTest {
         .withXmlClasspathResource("/compensation/compensation-boundary-event.bpmn")
         .deploy();
 
-    // when
     final long processInstanceKey =
         ENGINE.processInstance().ofBpmnProcessId("compensation-process").create();
+
+    // when
+    ENGINE.job().ofInstance(processInstanceKey).withType(Protocol.USER_TASK_JOB_TYPE).complete();
 
     // then
     assertThat(
@@ -70,15 +73,11 @@ public class CompensationEventTest {
                 .limitToProcessInstanceCompleted())
         .extracting(r -> r.getValue().getBpmnElementType(), Record::getIntent)
         .containsSubsequence(
+            tuple(BpmnElementType.USER_TASK, ProcessInstanceIntent.ELEMENT_COMPLETED),
             tuple(
-                BpmnElementType.INTERMEDIATE_THROW_EVENT, ProcessInstanceIntent.ELEMENT_COMPLETING),
-            tuple(
-                BpmnElementType.INTERMEDIATE_THROW_EVENT, ProcessInstanceIntent.ELEMENT_COMPLETED),
-            tuple(BpmnElementType.MANUAL_TASK, ProcessInstanceIntent.ELEMENT_COMPLETING),
-            tuple(BpmnElementType.MANUAL_TASK, ProcessInstanceIntent.ELEMENT_COMPLETED),
-            tuple(BpmnElementType.END_EVENT, ProcessInstanceIntent.ELEMENT_COMPLETING),
-            tuple(BpmnElementType.END_EVENT, ProcessInstanceIntent.ELEMENT_COMPLETED),
-            tuple(BpmnElementType.PROCESS, ProcessInstanceIntent.ELEMENT_COMPLETING),
-            tuple(BpmnElementType.PROCESS, ProcessInstanceIntent.ELEMENT_COMPLETED));
+                BpmnElementType.INTERMEDIATE_THROW_EVENT, ProcessInstanceIntent.ELEMENT_ACTIVATED),
+            tuple(BpmnElementType.BOUNDARY_EVENT, ProcessInstanceIntent.ELEMENT_ACTIVATED),
+            tuple(BpmnElementType.BOUNDARY_EVENT, ProcessInstanceIntent.ELEMENT_COMPLETED),
+            tuple(BpmnElementType.USER_TASK, ProcessInstanceIntent.ELEMENT_ACTIVATED));
   }
 }
