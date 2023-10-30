@@ -42,7 +42,7 @@ public class AtomixServerTransport extends Actor implements ServerTransport {
   public AtomixServerTransport(final MessagingService messagingService, final int nodeId) {
     this.messagingService = messagingService;
     partitionsRequestMap = new Int2ObjectHashMap<>();
-    this.idGenerator =
+    idGenerator =
         new SnowflakeIdGenerator(
             SnowflakeIdGenerator.NODE_ID_BITS_DEFAULT,
             SnowflakeIdGenerator.SEQUENCE_BITS_DEFAULT,
@@ -173,7 +173,7 @@ public class AtomixServerTransport extends Actor implements ServerTransport {
             return;
           }
 
-          final var completableFuture = requestMap.remove(requestId);
+          final var completableFuture = requestMap.get(requestId);
           if (completableFuture != null) {
             if (LOG.isTraceEnabled()) {
               LOG.trace("Send response to request {}", requestId);
