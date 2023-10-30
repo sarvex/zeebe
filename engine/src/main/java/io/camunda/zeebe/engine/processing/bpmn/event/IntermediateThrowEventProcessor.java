@@ -34,7 +34,8 @@ public class IntermediateThrowEventProcessor
           new MessageIntermediateThrowEventBehavior(),
           new LinkIntermediateThrowEventBehavior(),
           new EscalationIntermediateThrowEventBehavior(),
-          new SignalIntermediateThrowEventBehavior());
+          new SignalIntermediateThrowEventBehavior(),
+          new CompensationBehavior());
 
   private final BpmnVariableMappingBehavior variableMappingBehavior;
   private final BpmnStateTransitionBehavior stateTransitionBehavior;
@@ -291,6 +292,38 @@ public class IntermediateThrowEventProcessor
       variableMappingBehavior
           .applyOutputMappings(completing, element)
           .flatMap(ok -> stateTransitionBehavior.transitionToCompleted(element, completing))
+          .ifRightOrLeft(
+              completed -> stateTransitionBehavior.takeOutgoingSequenceFlows(element, completed),
+              failure -> incidentBehavior.createIncident(failure, completing));
+    }
+  }
+
+  private class CompensationBehavior implements IntermediateThrowEventBehavior {
+
+    @Override
+    public boolean isSuitableForEvent(final ExecutableIntermediateThrowEvent element) {
+      return element.isCompensationEvent();
+    }
+
+    @Override
+    public void onActivate(
+        final ExecutableIntermediateThrowEvent element, final BpmnElementContext activating) {
+
+      final BpmnElementContext activated =
+          stateTransitionBehavior.transitionToActivated(activating, element.getEventType());
+
+      // check for activities that are completed and have compensation handlers
+      // activate the compensation handler
+      // wait for completing
+
+      stateTransitionBehavior.completeElement(activated);
+    }
+
+    @Override
+    public void onComplete(
+        final ExecutableIntermediateThrowEvent element, final BpmnElementContext completing) {
+      stateTransitionBehavior
+          .transitionToCompleted(element, completing)
           .ifRightOrLeft(
               completed -> stateTransitionBehavior.takeOutgoingSequenceFlows(element, completed),
               failure -> incidentBehavior.createIncident(failure, completing));

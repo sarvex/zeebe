@@ -10,6 +10,8 @@ package io.camunda.zeebe.engine.processing.deployment.model.transformer;
 import io.camunda.zeebe.engine.processing.deployment.model.element.ExecutableIntermediateThrowEvent;
 import io.camunda.zeebe.engine.processing.deployment.model.transformation.ModelElementTransformer;
 import io.camunda.zeebe.engine.processing.deployment.model.transformation.TransformContext;
+import io.camunda.zeebe.model.bpmn.instance.Activity;
+import io.camunda.zeebe.model.bpmn.instance.CompensateEventDefinition;
 import io.camunda.zeebe.model.bpmn.instance.EscalationEventDefinition;
 import io.camunda.zeebe.model.bpmn.instance.IntermediateThrowEvent;
 import io.camunda.zeebe.model.bpmn.instance.LinkEventDefinition;
@@ -48,7 +50,37 @@ public final class IntermediateThrowEventTransformer
       transformEscalationEventDefinition(element, context);
     } else if (isSignalEvent(element)) {
       transformSignalEventDefinition(element, context);
+    } else if (isCompensationEvent(element)) {
+      transformCompensationEventDefinition(element, context);
     }
+  }
+
+  private void transformCompensationEventDefinition(
+      final IntermediateThrowEvent element, final TransformContext context) {
+    final var currentProcess = context.getCurrentProcess();
+    final var executableElement =
+        currentProcess.getElementById(element.getId(), ExecutableIntermediateThrowEvent.class);
+
+    final var eventDefinition =
+        (CompensateEventDefinition) element.getEventDefinitions().iterator().next();
+
+    //    final Collection<Association> associations = element.getParentElement()
+    //        .getChildElementsByType(Association.class);
+    //
+    //    associations.stream().filter(association -> association.getSource())
+
+    final Activity compensationHandlerActivity = eventDefinition.getActivity();
+
+    //    final ExecutableActivity compensationHandler =
+    //        currentProcess.getElementById(
+    //            compensationHandlerActivity.getId(), ExecutableActivity.class);
+    //
+    //    final ExecutableCompensation compensation = new
+    // ExecutableCompensation(eventDefinition.getId());
+    //    compensation.setCompensationHandler(compensationHandler);
+    //    executableElement.setCompensation(compensation);
+
+    executableElement.setEventType(BpmnEventType.COMPENSATION);
   }
 
   private boolean isMessageEvent(final IntermediateThrowEvent element) {
@@ -67,6 +99,11 @@ public final class IntermediateThrowEventTransformer
 
   private boolean isSignalEvent(final IntermediateThrowEvent element) {
     return element.getEventDefinitions().stream().anyMatch(SignalEventDefinition.class::isInstance);
+  }
+
+  private boolean isCompensationEvent(final IntermediateThrowEvent element) {
+    return element.getEventDefinitions().stream()
+        .anyMatch(CompensateEventDefinition.class::isInstance);
   }
 
   private boolean hasTaskDefinition(final IntermediateThrowEvent element) {

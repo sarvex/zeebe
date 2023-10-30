@@ -53,6 +53,34 @@ public class CompensationEventTest {
   }
 
   @Test
+  public void shouldCompleteIfNoCompensationHandlers() {
+    // given
+    ENGINE
+        .deployment()
+        .withXmlClasspathResource("/compensation/compensation-without-compensation-handlers.bpmn")
+        .deploy();
+
+    final long processInstanceKey =
+        ENGINE.processInstance().ofBpmnProcessId("compensation-process").create();
+
+    // when
+    ENGINE.job().ofInstance(processInstanceKey).withType(Protocol.USER_TASK_JOB_TYPE).complete();
+
+    // then
+    assertThat(
+            RecordingExporter.processInstanceRecords()
+                .withProcessInstanceKey(processInstanceKey)
+                .limitToProcessInstanceCompleted())
+        .extracting(r -> r.getValue().getBpmnElementType(), Record::getIntent)
+        .containsSubsequence(
+            tuple(BpmnElementType.USER_TASK, ProcessInstanceIntent.ELEMENT_COMPLETED),
+            tuple(
+                BpmnElementType.INTERMEDIATE_THROW_EVENT, ProcessInstanceIntent.ELEMENT_ACTIVATED),
+            tuple(BpmnElementType.END_EVENT, ProcessInstanceIntent.ELEMENT_COMPLETED),
+            tuple(BpmnElementType.PROCESS, ProcessInstanceIntent.ELEMENT_COMPLETED));
+  }
+
+  @Test
   public void shouldInvokeCompensationHandler() {
     // given
     ENGINE
