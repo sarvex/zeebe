@@ -22,6 +22,8 @@ message StreamActivatedJobsRequest {
   repeated string fetchVariable = 5;
   // a list of identifiers of tenants for which to stream jobs
   repeated string tenantIds = 6;
+  // the amount of jobs the client can handle right now
+  int64 amount = 7;
 }
 
 message ActivateJobsRequest {
@@ -662,7 +664,7 @@ service Gateway {
       - type is blank (empty string, null)
       - timeout less than 1
   */
-  rpc StreamActivatedJobs (StreamActivatedJobsRequest) returns (stream ActivatedJob) {
+  rpc StreamActivatedJobs (stream StreamActivatedJobsRequest) returns (stream ActivatedJob) {
   }
 
   /*

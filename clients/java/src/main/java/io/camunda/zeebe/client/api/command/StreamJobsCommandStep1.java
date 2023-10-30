@@ -17,7 +17,6 @@ package io.camunda.zeebe.client.api.command;
 
 import io.camunda.zeebe.client.api.ExperimentalApi;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
-import io.camunda.zeebe.client.api.response.StreamJobsResponse;
 import java.time.Duration;
 import java.util.List;
 import java.util.function.Consumer;
@@ -46,9 +45,7 @@ public interface StreamJobsCommandStep1 {
     StreamJobsCommandStep3 consumer(final Consumer<ActivatedJob> consumer);
   }
 
-  interface StreamJobsCommandStep3
-      extends CommandWithOneOrMoreTenantsStep<StreamJobsCommandStep3>,
-          FinalCommandStep<StreamJobsResponse> {
+  interface StreamJobsCommandStep3 extends CommandWithOneOrMoreTenantsStep<StreamJobsCommandStep3> {
     /**
      * Set the time for how long a job is exclusively assigned for this subscription.
      *
@@ -104,5 +101,25 @@ public interface StreamJobsCommandStep1 {
      *     it to the broker.
      */
     StreamJobsCommandStep3 fetchVariables(String... fetchVariables);
+
+    /**
+     * Open a bi-directional stream
+     *
+     * @return controller to work on the stream
+     */
+    StreamController open(Consumer<Throwable> errorHandler);
+
+    StreamJobsCommandStep3 requestTimeout(Duration timeout);
+  }
+
+  interface StreamController extends AutoCloseable {
+
+    /**
+     * Tells the gateway that we want to consume more, causes to consumer will called with new
+     * objects
+     *
+     * @param amount the amount of new jobs which should be consumed
+     */
+    void request(int amount);
   }
 }

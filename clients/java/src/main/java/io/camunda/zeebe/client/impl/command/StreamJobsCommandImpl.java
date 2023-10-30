@@ -17,16 +17,11 @@ package io.camunda.zeebe.client.impl.command;
 
 import io.camunda.zeebe.client.ZeebeClientConfiguration;
 import io.camunda.zeebe.client.api.JsonMapper;
-import io.camunda.zeebe.client.api.ZeebeFuture;
-import io.camunda.zeebe.client.api.command.FinalCommandStep;
 import io.camunda.zeebe.client.api.command.StreamJobsCommandStep1;
 import io.camunda.zeebe.client.api.command.StreamJobsCommandStep1.StreamJobsCommandStep2;
 import io.camunda.zeebe.client.api.command.StreamJobsCommandStep1.StreamJobsCommandStep3;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
-import io.camunda.zeebe.client.api.response.StreamJobsResponse;
-import io.camunda.zeebe.client.impl.RetriableStreamingFutureImpl;
 import io.camunda.zeebe.client.impl.response.ActivatedJobImpl;
-import io.camunda.zeebe.client.impl.response.StreamJobsResponseImpl;
 import io.camunda.zeebe.gateway.protocol.GatewayGrpc.GatewayStub;
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass;
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass.StreamActivatedJobsRequest;
@@ -74,48 +69,45 @@ public final class StreamJobsCommandImpl
   }
 
   @Override
-  public FinalCommandStep<StreamJobsResponse> requestTimeout(final Duration requestTimeout) {
-    this.requestTimeout = requestTimeout;
-    return this;
-  }
-
-  @Override
-  public ZeebeFuture<StreamJobsResponse> send() {
-
-    if (customTenantIds.isEmpty()) {
-      builder.addAllTenantIds(defaultTenantIds);
-    } else {
-      builder.addAllTenantIds(customTenantIds);
-    }
-
-    final StreamActivatedJobsRequest request = builder.build();
-    final RetriableStreamingFutureImpl<StreamJobsResponse, GatewayOuterClass.ActivatedJob> result =
-        new RetriableStreamingFutureImpl<>(
-            new StreamJobsResponseImpl(),
-            this::consumeJob,
-            retryPredicate,
-            streamObserver -> send(request, streamObserver));
-
-    send(request, result);
-    return result;
-  }
-
-  private void send(
-      final StreamActivatedJobsRequest request,
-      final StreamObserver<GatewayOuterClass.ActivatedJob> observer) {
-    GatewayStub stub = asyncStub;
-    if (requestTimeout != null) {
-      stub = stub.withDeadlineAfter(requestTimeout.toNanos(), TimeUnit.NANOSECONDS);
-    }
-
-    stub.streamActivatedJobs(request, observer);
-  }
-
-  @Override
   public StreamJobsCommandStep2 jobType(final String jobType) {
     builder.setType(Objects.requireNonNull(jobType, "must specify a job type"));
     return this;
   }
+  //
+  //  @Override
+  //  public ZeebeFuture<StreamJobsResponse> send() {
+  //
+  //    if (customTenantIds.isEmpty()) {
+  //      builder.addAllTenantIds(defaultTenantIds);
+  //    } else {
+  //      builder.addAllTenantIds(customTenantIds);
+  //    }
+  //
+  //    final StreamActivatedJobsRequest request = builder.build();
+  //    final RetriableStreamingFutureImpl<StreamJobsResponse, GatewayOuterClass.ActivatedJob>
+  // result =
+  //        new RetriableStreamingFutureImpl<>(
+  //            new StreamJobsResponseImpl(),
+  //            this::consumeJob,
+  //            retryPredicate,
+  //            streamObserver -> send(request, streamObserver));
+  //
+  //    send(request, result);
+  //    return result;
+  //  }
+  //
+  //  private void send(
+  //      final StreamActivatedJobsRequest request,
+  //      final StreamObserver<GatewayOuterClass.ActivatedJob> observer) {
+  //    GatewayStub stub = asyncStub;
+  //    if (requestTimeout != null) {
+  //      stub = stub.withDeadlineAfter(requestTimeout.toNanos(), TimeUnit.NANOSECONDS);
+  //    }
+  //
+  //    final StreamObserver<StreamActivatedJobsRequest> sender =
+  // stub.streamActivatedJobs(observer);
+  //    sender.onNext(request);
+  //  }
 
   @Override
   public StreamJobsCommandStep3 consumer(final Consumer<ActivatedJob> consumer) {
@@ -145,6 +137,47 @@ public final class StreamJobsCommandImpl
   @Override
   public StreamJobsCommandStep3 fetchVariables(final String... fetchVariables) {
     return fetchVariables(Arrays.asList(fetchVariables));
+  }
+
+  @Override
+  public StreamController open(final Consumer<Throwable> onErrorListener) {
+    if (customTenantIds.isEmpty()) {
+      builder.addAllTenantIds(defaultTenantIds);
+    } else {
+      builder.addAllTenantIds(customTenantIds);
+    }
+
+    final ClientJobStreamObserver jobStreamObserver =
+        new ClientJobStreamObserver(onErrorListener, jsonMapper, consumer);
+
+    GatewayStub stub = asyncStub;
+    if (requestTimeout != null) {
+      stub = stub.withDeadlineAfter(requestTimeout.toNanos(), TimeUnit.NANOSECONDS);
+    }
+
+    final StreamObserver<StreamActivatedJobsRequest> sender =
+        stub.streamActivatedJobs(jobStreamObserver);
+    sender.onNext(builder.setAmount(1).build());
+
+    return new StreamController() {
+
+      @Override
+      public void request(final int amount) {
+        sender.onNext(builder.setAmount(amount).build());
+      }
+
+      @Override
+      public void close() throws Exception {
+        sender.onCompleted();
+        // TODO what else do we need to close
+      }
+    };
+  }
+
+  @Override
+  public StreamJobsCommandStep3 requestTimeout(final Duration requestTimeout) {
+    this.requestTimeout = requestTimeout;
+    return this;
   }
 
   @Override
