@@ -37,7 +37,7 @@ public class CompensationEventTest {
       new RecordingExporterTestWatcher();
 
   @Test
-  public void shouldDeployCompensationBoundaryEvent() {
+  public void shouldDeployWithCompensationEvents() {
     // when
     ENGINE
         .deployment()

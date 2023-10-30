@@ -10,13 +10,19 @@
       <bpmn:outgoing>Flow_13spwoi</bpmn:outgoing>
     </bpmn:userTask>
     <bpmn:endEvent id="Event_0iasuoa">
-      <bpmn:incoming>Flow_13spwoi</bpmn:incoming>
+      <bpmn:incoming>Flow_1bftyel</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:sequenceFlow id="Flow_13spwoi" sourceRef="Activity_05iamly" targetRef="Event_0iasuoa" />
+    <bpmn:sequenceFlow id="Flow_13spwoi" sourceRef="Activity_05iamly" targetRef="Event_0tgv88u" />
     <bpmn:boundaryEvent id="Event_14k1uqy" attachedToRef="Activity_05iamly">
       <bpmn:compensateEventDefinition id="CompensateEventDefinition_0o178oi" />
     </bpmn:boundaryEvent>
     <bpmn:userTask id="Activity_1epoz0g" name="undo A" isForCompensation="true" />
+    <bpmn:intermediateThrowEvent id="Event_0tgv88u">      
+      <bpmn:incoming>Flow_13spwoi</bpmn:incoming>
+      <bpmn:outgoing>Flow_1bftyel</bpmn:outgoing>
+      <bpmn:compensateEventDefinition id="CompensateEventDefinition_1nvdpsp" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:sequenceFlow id="Flow_1bftyel" sourceRef="Event_0tgv88u" targetRef="Event_0iasuoa" />
     <bpmn:association id="Association_1jwpcsv" associationDirection="One" sourceRef="Event_14k1uqy" targetRef="Activity_1epoz0g" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
@@ -27,12 +33,15 @@
       <bpmndi:BPMNShape id="Activity_1761rwu_di" bpmnElement="Activity_05iamly">
         <dc:Bounds x="270" y="77" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_0iasuoa_di" bpmnElement="Event_0iasuoa">
-        <dc:Bounds x="432" y="99" width="36" height="36" />
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1en6ywx_di" bpmnElement="Activity_1epoz0g">
         <dc:Bounds x="440" y="200" width="100" height="80" />
         <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0iasuoa_di" bpmnElement="Event_0iasuoa">
+        <dc:Bounds x="852" y="99" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0tgv88u_di" bpmnElement="Event_0tgv88u">
+        <dc:Bounds x="552" y="99" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_1n78lze_di" bpmnElement="Event_14k1uqy">
         <dc:Bounds x="352" y="139" width="36" height="36" />
@@ -43,12 +52,16 @@
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_13spwoi_di" bpmnElement="Flow_13spwoi">
         <di:waypoint x="370" y="117" />
-        <di:waypoint x="432" y="117" />
+        <di:waypoint x="552" y="117" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Association_1jwpcsv_di" bpmnElement="Association_1jwpcsv">
         <di:waypoint x="350" y="175" />
         <di:waypoint x="350" y="240" />
         <di:waypoint x="420" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1bftyel_di" bpmnElement="Flow_1bftyel">
+        <di:waypoint x="588" y="117" />
+        <di:waypoint x="852" y="117" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
