@@ -25,6 +25,9 @@ public class ExecutableCatchEventElement extends ExecutableFlowNode
   private ExecutableError error;
   private ExecutableEscalation escalation;
   private ExecutableSignal signal;
+
+  private ExecutableCompensation compensation;
+
   private boolean interrupting;
   private BiFunction<ExpressionProcessor, Long, Either<Failure, Timer>> timerFactory;
 
@@ -145,5 +148,13 @@ public class ExecutableCatchEventElement extends ExecutableFlowNode
 
   public void setConnectedToEventBasedGateway(final boolean connectedToEventBasedGateway) {
     isConnectedToEventBasedGateway = connectedToEventBasedGateway;
+  }
+
+  public ExecutableCompensation getCompensation() {
+    return compensation;
+  }
+
+  public void setCompensation(final ExecutableCompensation compensation) {
+    this.compensation = compensation;
   }
 }

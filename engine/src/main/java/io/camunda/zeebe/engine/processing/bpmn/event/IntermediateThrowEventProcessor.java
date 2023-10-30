@@ -312,6 +312,7 @@ public class IntermediateThrowEventProcessor
       final BpmnElementContext activated =
           stateTransitionBehavior.transitionToActivated(activating, element.getEventType());
 
+      // todo:
       // check for activities that are completed and have compensation handlers
       // activate the compensation handler
       // wait for completing

@@ -70,6 +70,15 @@ public final class DbElementInstanceState implements MutableElementInstanceState
   private final ColumnFamily<DbCompositeKey<DbLong, DbLong>, DbNil>
       processInstanceKeyByProcessDefinitionKeyColumnFamily;
 
+  // [process instance key | timestamp (for sorting) | element id] => [Nil]
+  // todo: should be more complicated; tenant stuff is missing
+  private final ColumnFamily<DbCompositeKey<DbLong, DbCompositeKey<DbLong, DbString>>, DbNil>
+      compensationHandlerColumnFamily;
+  private final DbLong compensationProcessInstanceKey;
+  private final DbLong compensationTimeKey;
+  private final DbString compensationHandlerElementIdKey;
+  private final DbCompositeKey<DbLong, DbCompositeKey<DbLong, DbString>> compensationHandlerKey;
+
   public DbElementInstanceState(
       final ZeebeDb<ZbColumnFamilies> zeebeDb,
       final TransactionContext transactionContext,
@@ -129,6 +138,20 @@ public final class DbElementInstanceState implements MutableElementInstanceState
             ZbColumnFamilies.PROCESS_INSTANCE_KEY_BY_DEFINITION_KEY,
             transactionContext,
             processInstanceKeyByProcessDefinitionKey,
+            DbNil.INSTANCE);
+
+    compensationProcessInstanceKey = new DbLong();
+    compensationTimeKey = new DbLong();
+    compensationHandlerElementIdKey = new DbString();
+    compensationHandlerKey =
+        new DbCompositeKey<>(
+            compensationProcessInstanceKey,
+            new DbCompositeKey<>(compensationTimeKey, compensationHandlerElementIdKey));
+    compensationHandlerColumnFamily =
+        zeebeDb.createColumnFamily(
+            ZbColumnFamilies.COMPENSATION_HANDLERS,
+            transactionContext,
+            compensationHandlerKey,
             DbNil.INSTANCE);
   }
 
@@ -269,6 +292,19 @@ public final class DbElementInstanceState implements MutableElementInstanceState
             numberOfTakenSequenceFlowsColumnFamily.deleteExisting(key);
           }
         });
+  }
+
+  @Override
+  public void putCompensationHandler(
+      final long processInstanceKey,
+      final long timestamp,
+      final String compensationHandlerElementId) {
+
+    compensationProcessInstanceKey.wrapLong(processInstanceKey);
+    compensationTimeKey.wrapLong(timestamp);
+    compensationHandlerElementIdKey.wrapString(compensationHandlerElementId);
+
+    compensationHandlerColumnFamily.insert(compensationHandlerKey, DbNil.INSTANCE);
   }
 
   @Override

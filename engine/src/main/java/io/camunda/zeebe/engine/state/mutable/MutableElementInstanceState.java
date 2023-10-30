@@ -60,4 +60,9 @@ public interface MutableElementInstanceState extends ElementInstanceState {
    */
   void decrementNumberOfTakenSequenceFlows(
       final long flowScopeKey, final DirectBuffer gatewayElementId);
+
+  void putCompensationHandler(
+      final long processInstanceKey,
+      final long timestamp,
+      final String compensationHandlerElementId);
 }

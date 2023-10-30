@@ -7,8 +7,10 @@
  */
 package io.camunda.zeebe.engine.state.appliers;
 
+import io.camunda.zeebe.engine.processing.deployment.model.element.ExecutableActivity;
 import io.camunda.zeebe.engine.processing.deployment.model.element.ExecutableCallActivity;
 import io.camunda.zeebe.engine.processing.deployment.model.element.ExecutableEndEvent;
+import io.camunda.zeebe.engine.processing.deployment.model.element.ExecutableFlowNode;
 import io.camunda.zeebe.engine.state.TypedEventApplier;
 import io.camunda.zeebe.engine.state.immutable.ProcessState;
 import io.camunda.zeebe.engine.state.instance.ElementInstance;
@@ -18,6 +20,8 @@ import io.camunda.zeebe.engine.state.mutable.MutableVariableState;
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceRecord;
 import io.camunda.zeebe.protocol.record.intent.ProcessInstanceIntent;
 import io.camunda.zeebe.protocol.record.value.BpmnElementType;
+import io.camunda.zeebe.protocol.record.value.BpmnEventType;
+import io.camunda.zeebe.util.buffer.BufferUtil;
 
 /** Applies state changes for `ProcessInstance:Element_Completed` */
 final class ProcessInstanceElementCompletedApplier
@@ -69,6 +73,40 @@ final class ProcessInstanceElementCompletedApplier
       flowScopeInstance.resetActiveSequenceFlows();
       flowScopeInstance.setInterruptingElementId(value.getElementIdBuffer());
       elementInstanceState.updateInstance(flowScopeInstance);
+    }
+
+    // special stuff for compensation ========>
+    final ExecutableFlowNode flowNode =
+        processState.getFlowElement(
+            value.getProcessDefinitionKey(),
+            value.getTenantId(),
+            value.getElementIdBuffer(),
+            ExecutableFlowNode.class);
+
+    if (flowNode instanceof ExecutableActivity) {
+      final var theElement =
+          processState.getFlowElement(
+              value.getProcessDefinitionKey(),
+              value.getTenantId(),
+              value.getElementIdBuffer(),
+              ExecutableActivity.class);
+
+      final var compensationBoundaryEvent =
+          theElement.getBoundaryEvents().stream()
+              .filter(boundaryEvent -> boundaryEvent.getEventType() == BpmnEventType.COMPENSATION)
+              .findFirst();
+
+      compensationBoundaryEvent.ifPresent(
+          boundaryEvent -> {
+            final ExecutableActivity compensationHandler =
+                boundaryEvent.getCompensation().getCompensationHandler();
+
+            // todo: don't use the key - this is wrong
+            elementInstanceState.putCompensationHandler(
+                value.getProcessInstanceKey(),
+                key,
+                BufferUtil.bufferAsString(compensationHandler.getId()));
+          });
     }
   }
 
