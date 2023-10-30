@@ -10,7 +10,6 @@ package io.camunda.zeebe.engine.state.appliers;
 import io.camunda.zeebe.engine.processing.deployment.model.element.ExecutableActivity;
 import io.camunda.zeebe.engine.processing.deployment.model.element.ExecutableCallActivity;
 import io.camunda.zeebe.engine.processing.deployment.model.element.ExecutableEndEvent;
-import io.camunda.zeebe.engine.processing.deployment.model.element.ExecutableFlowNode;
 import io.camunda.zeebe.engine.state.TypedEventApplier;
 import io.camunda.zeebe.engine.state.immutable.ProcessState;
 import io.camunda.zeebe.engine.state.instance.ElementInstance;
@@ -22,10 +21,21 @@ import io.camunda.zeebe.protocol.record.intent.ProcessInstanceIntent;
 import io.camunda.zeebe.protocol.record.value.BpmnElementType;
 import io.camunda.zeebe.protocol.record.value.BpmnEventType;
 import io.camunda.zeebe.util.buffer.BufferUtil;
+import java.util.EnumSet;
 
 /** Applies state changes for `ProcessInstance:Element_Completed` */
 final class ProcessInstanceElementCompletedApplier
     implements TypedEventApplier<ProcessInstanceIntent, ProcessInstanceRecord> {
+
+  private static final EnumSet<BpmnElementType> ELEMENT_TYPES_FOR_COMPENSATION =
+      EnumSet.of(
+          BpmnElementType.SERVICE_TASK,
+          BpmnElementType.USER_TASK,
+          BpmnElementType.SCRIPT_TASK,
+          BpmnElementType.BUSINESS_RULE_TASK,
+          BpmnElementType.MANUAL_TASK,
+          BpmnElementType.SEND_TASK,
+          BpmnElementType.TASK);
 
   private final MutableElementInstanceState elementInstanceState;
   private final MutableEventScopeInstanceState eventScopeInstanceState;
@@ -75,39 +85,35 @@ final class ProcessInstanceElementCompletedApplier
       elementInstanceState.updateInstance(flowScopeInstance);
     }
 
-    // special stuff for compensation ========>
-    final ExecutableFlowNode flowNode =
+    if (ELEMENT_TYPES_FOR_COMPENSATION.contains(value.getBpmnElementType())) {
+      registerCompensationHandler(key, value);
+    }
+  }
+
+  private void registerCompensationHandler(final long key, final ProcessInstanceRecord value) {
+    final var theElement =
         processState.getFlowElement(
             value.getProcessDefinitionKey(),
             value.getTenantId(),
             value.getElementIdBuffer(),
-            ExecutableFlowNode.class);
+            ExecutableActivity.class);
 
-    if (flowNode instanceof ExecutableActivity) {
-      final var theElement =
-          processState.getFlowElement(
-              value.getProcessDefinitionKey(),
-              value.getTenantId(),
-              value.getElementIdBuffer(),
-              ExecutableActivity.class);
+    final var compensationBoundaryEvent =
+        theElement.getBoundaryEvents().stream()
+            .filter(boundaryEvent -> boundaryEvent.getEventType() == BpmnEventType.COMPENSATION)
+            .findFirst();
 
-      final var compensationBoundaryEvent =
-          theElement.getBoundaryEvents().stream()
-              .filter(boundaryEvent -> boundaryEvent.getEventType() == BpmnEventType.COMPENSATION)
-              .findFirst();
+    compensationBoundaryEvent.ifPresent(
+        boundaryEvent -> {
+          final ExecutableActivity compensationHandler =
+              boundaryEvent.getCompensation().getCompensationHandler();
 
-      compensationBoundaryEvent.ifPresent(
-          boundaryEvent -> {
-            final ExecutableActivity compensationHandler =
-                boundaryEvent.getCompensation().getCompensationHandler();
-
-            // todo: don't use the key - this is wrong
-            elementInstanceState.putCompensationHandler(
-                value.getProcessInstanceKey(),
-                key,
-                BufferUtil.bufferAsString(compensationHandler.getId()));
-          });
-    }
+          // todo: don't use the key - this is wrong
+          elementInstanceState.putCompensationHandler(
+              value.getProcessInstanceKey(),
+              key,
+              BufferUtil.bufferAsString(compensationHandler.getId()));
+        });
   }
 
   private boolean isChildProcess(
