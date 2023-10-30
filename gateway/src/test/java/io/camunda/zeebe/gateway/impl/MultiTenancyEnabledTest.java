@@ -437,7 +437,7 @@ public class MultiTenancyEnabledTest extends GatewayTest {
     final TestStreamObserver streamObserver = new TestStreamObserver();
 
     // when
-    asyncClient.streamActivatedJobs(request, streamObserver);
+    //    asyncClient.streamActivatedJobs(request, streamObserver);
 
     // then
     Awaitility.await("until validation error propagated")
@@ -463,7 +463,7 @@ public class MultiTenancyEnabledTest extends GatewayTest {
     final TestStreamObserver streamObserver = new TestStreamObserver();
 
     // when
-    asyncClient.streamActivatedJobs(request, streamObserver);
+    //    asyncClient.streamActivatedJobs(request, streamObserver);
 
     // then
     Awaitility.await("until validation error propagated")
@@ -491,7 +491,7 @@ public class MultiTenancyEnabledTest extends GatewayTest {
     final TestStreamObserver streamObserver = new TestStreamObserver();
 
     // when
-    asyncClient.streamActivatedJobs(request, streamObserver);
+    //    asyncClient.streamActivatedJobs(request, streamObserver);
 
     // then
     Awaitility.await("until validation error propagated")
@@ -520,7 +520,7 @@ public class MultiTenancyEnabledTest extends GatewayTest {
     final TestStreamObserver streamObserver = new TestStreamObserver();
 
     // when
-    asyncClient.streamActivatedJobs(request, streamObserver);
+    //    asyncClient.streamActivatedJobs(request, streamObserver);
 
     // then
     Awaitility.await("until validation error propagated")

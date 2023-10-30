@@ -64,11 +64,11 @@ import io.camunda.zeebe.gateway.protocol.GatewayOuterClass.ThrowErrorResponse;
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass.TopologyResponse;
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass.UpdateJobRetriesRequest;
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass.UpdateJobRetriesResponse;
-import io.camunda.zeebe.protocol.impl.stream.job.JobActivationProperties;
 import io.camunda.zeebe.protocol.record.value.TenantOwned;
 import io.camunda.zeebe.util.VersionUtil;
 import io.grpc.Context;
 import io.grpc.stub.ServerCallStreamObserver;
+import io.grpc.stub.StreamObserver;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -162,16 +162,9 @@ public final class EndpointManager {
     return true;
   }
 
-  public void streamActivatedJobs(
-      final StreamActivatedJobsRequest request,
+  public StreamObserver<StreamActivatedJobsRequest> streamActivatedJobs(
       final ServerCallStreamObserver<ActivatedJob> responseObserver) {
-    try {
-      final JobActivationProperties brokerRequest =
-          RequestMapper.toJobActivationProperties(request);
-      streamJobsHandler.handle(request.getType(), brokerRequest, responseObserver);
-    } catch (final Exception e) {
-      responseObserver.onError(e);
-    }
+    return streamJobsHandler.handle(responseObserver);
   }
 
   public void activateJobs(

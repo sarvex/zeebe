@@ -65,11 +65,10 @@ public class GatewayGrpcService extends GatewayImplBase {
   }
 
   @Override
-  public void streamActivatedJobs(
-      final StreamActivatedJobsRequest request,
+  public StreamObserver<StreamActivatedJobsRequest> streamActivatedJobs(
       final StreamObserver<ActivatedJob> responseObserver) {
-    endpointManager.streamActivatedJobs(
-        request, ErrorMappingStreamObserver.ofStreamObserver(responseObserver));
+    return endpointManager.streamActivatedJobs(
+        ErrorMappingStreamObserver.ofStreamObserver(responseObserver));
   }
 
   @Override

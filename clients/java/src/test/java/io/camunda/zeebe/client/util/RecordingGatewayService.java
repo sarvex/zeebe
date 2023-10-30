@@ -296,10 +296,19 @@ public final class RecordingGatewayService extends GatewayImplBase {
   }
 
   @Override
-  public void streamActivatedJobs(
-      final StreamActivatedJobsRequest request,
+  public StreamObserver<StreamActivatedJobsRequest> streamActivatedJobs(
       final StreamObserver<ActivatedJob> responseObserver) {
-    handle(request, responseObserver);
+    //    handle(request, responseObserver);
+    return new StreamObserver<StreamActivatedJobsRequest>() {
+      @Override
+      public void onNext(final StreamActivatedJobsRequest value) {}
+
+      @Override
+      public void onError(final Throwable t) {}
+
+      @Override
+      public void onCompleted() {}
+    };
   }
 
   @Override

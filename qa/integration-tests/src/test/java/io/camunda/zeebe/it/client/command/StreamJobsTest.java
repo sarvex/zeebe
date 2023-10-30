@@ -27,14 +27,17 @@ import io.camunda.zeebe.test.util.record.RecordingExporter;
 import io.grpc.Status;
 import io.grpc.Status.Code;
 import io.grpc.StatusRuntimeException;
+import io.zeebe.containers.clock.ZeebeClock;
+import java.net.URL;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.assertj.core.data.Offset;
 import org.awaitility.Awaitility;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @AutoCloseResources
@@ -42,9 +45,26 @@ import org.junit.jupiter.api.Test;
 final class StreamJobsTest {
   @TestZeebe
   private static final TestStandaloneBroker ZEEBE =
-      new TestStandaloneBroker().withRecordingExporter(true);
+      new TestStandaloneBroker()
+          .withProperty("zeebe.clock.controlled", true)
+          .withRecordingExporter(true);
+
+  private static final ZeebeClock CLOCK;
+
+  static {
+    try {
+      CLOCK = ZeebeClock.newDefaultClock(new URL("http://" + ZEEBE.monitoringAddress()));
+    } catch (final Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   @AutoCloseResource private final ZeebeClient client = ZEEBE.newClientBuilder().build();
+
+  @BeforeEach
+  void beforeEach() {
+    CLOCK.resetTime();
+  }
 
   @Test
   void shouldStreamJobs() {
@@ -67,6 +87,8 @@ final class StreamJobsTest {
     deployProcess(process);
 
     // when
+    final var now = Instant.now();
+    CLOCK.pinTime(now);
     final var stream =
         client
             .newStreamJobsCommand()
@@ -76,11 +98,10 @@ final class StreamJobsTest {
             .fetchVariables("foo")
             .tenantIds(TenantOwned.DEFAULT_TENANT_IDENTIFIER)
             .timeout(Duration.ofSeconds(5))
-            .send();
-    final var initialTime = System.currentTimeMillis();
+            .open(error -> {});
     final boolean processInstanceCompleted;
 
-    try {
+    try (stream) {
       awaitStreamRegistered(uniqueId);
       final var processInstanceKey =
           createProcessInstance(uniqueId, Map.of("foo", "bar", "baz", "buz"));
@@ -90,8 +111,6 @@ final class StreamJobsTest {
               .limitToProcessInstanceCompleted()
               .findFirst()
               .isPresent();
-    } finally {
-      stream.cancel(true);
     }
 
     // then
@@ -103,7 +122,7 @@ final class StreamJobsTest {
         .allSatisfy(
             job -> {
               assertThat(job.getWorker()).isEqualTo("streamer");
-              assertThat(job.getDeadline()).isCloseTo(initialTime + 5000, Offset.offset(500L));
+              assertThat(job.getDeadline()).isEqualTo(now.toEpochMilli() + 5000L);
               assertThat(job.getVariablesAsMap()).isEqualTo(Map.of("foo", "bar"));
             });
   }
@@ -141,15 +160,13 @@ final class StreamJobsTest {
             .jobType(uniqueId)
             .consumer(streamHandler)
             .workerName("stream")
-            .send();
+            .open(error -> {});
     final long secondPIKey;
-    try {
+    try (stream) {
       awaitStreamRegistered(uniqueId);
       secondPIKey = createProcessInstance(uniqueId);
       Awaitility.await("until job has been streamed")
           .untilAsserted(() -> assertThat(streamedJobs).hasSize(1));
-    } finally {
-      stream.cancel(true);
     }
 
     // poll after the newer job was streamed, showing that polling for older jobs work
@@ -185,7 +202,7 @@ final class StreamJobsTest {
             .jobType(uniqueId)
             .consumer(ignored -> {})
             .workerName("stream")
-            .send();
+            .open(error -> {});
     awaitStreamRegistered(uniqueId);
     ZEEBE.stop().start().awaitCompleteTopology();
 

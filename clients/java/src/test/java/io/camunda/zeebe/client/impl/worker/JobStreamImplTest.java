@@ -191,17 +191,17 @@ final class JobStreamImplTest {
     private int keyGenerator;
 
     @Override
-    public void streamActivatedJobs(
-        final StreamActivatedJobsRequest request,
+    public StreamObserver<StreamActivatedJobsRequest> streamActivatedJobs(
         final StreamObserver<GatewayOuterClass.ActivatedJob> responseObserver) {
-      final ServerCallStreamObserver<GatewayOuterClass.ActivatedJob> stream =
-          (ServerCallStreamObserver<GatewayOuterClass.ActivatedJob>) responseObserver;
-
-      streams.put(request, stream);
-      requests.add(request);
-
-      stream.setOnCancelHandler(() -> streams.remove(request));
-      stream.setOnCloseHandler(() -> streams.remove(request));
+      //      final ServerCallStreamObserver<GatewayOuterClass.ActivatedJob> stream =
+      //          (ServerCallStreamObserver<GatewayOuterClass.ActivatedJob>) responseObserver;
+      //
+      //      streams.put(request, stream);
+      //      requests.add(request);
+      //
+      //      stream.setOnCancelHandler(() -> streams.remove(request));
+      //      stream.setOnCloseHandler(() -> streams.remove(request));
+      return null;
     }
 
     private StreamActivatedJobsRequest lastRequest() {

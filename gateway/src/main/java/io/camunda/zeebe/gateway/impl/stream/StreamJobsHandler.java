@@ -11,6 +11,7 @@ import static io.camunda.zeebe.util.buffer.BufferUtil.wrapString;
 
 import io.camunda.zeebe.gateway.ResponseMapper;
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass.ActivatedJob;
+import io.camunda.zeebe.gateway.protocol.GatewayOuterClass.StreamActivatedJobsRequest;
 import io.camunda.zeebe.protocol.impl.stream.job.ActivatedJobImpl;
 import io.camunda.zeebe.protocol.impl.stream.job.JobActivationProperties;
 import io.camunda.zeebe.scheduler.Actor;
@@ -40,6 +41,11 @@ public class StreamJobsHandler extends Actor {
 
   public StreamJobsHandler(final ClientStreamer<JobActivationProperties> jobStreamer) {
     this.jobStreamer = jobStreamer;
+  }
+
+  public StreamObserver<StreamActivatedJobsRequest> handle(
+      final ServerCallStreamObserver<ActivatedJob> responseObserver) {
+    return new StreamJobsObserver(actor, jobStreamer, responseObserver);
   }
 
   public void handle(

@@ -58,7 +58,7 @@ final class JobStreamEndpointIT {
         .workerName("foo")
         .timeout(Duration.ofMillis(100))
         .fetchVariables("foo", "fooz")
-        .send();
+        .open(error -> {});
     client
         .newStreamJobsCommand()
         .jobType("bar")
@@ -66,7 +66,7 @@ final class JobStreamEndpointIT {
         .workerName("bar")
         .timeout(Duration.ofMillis(250))
         .fetchVariables("bar", "barz")
-        .send();
+        .open(error -> {});
 
     // then
     final var brokerActuator = JobStreamActuator.of(CLUSTER.brokers().get(MemberId.from("0")));
@@ -111,7 +111,7 @@ final class JobStreamEndpointIT {
           .workerName("foo")
           .timeout(Duration.ofMillis(100))
           .fetchVariables("foo", "fooz")
-          .send();
+          .open(error -> {});
       otherClient
           .newStreamJobsCommand()
           .jobType("foo")
@@ -119,7 +119,7 @@ final class JobStreamEndpointIT {
           .workerName("foo")
           .timeout(Duration.ofMillis(100))
           .fetchVariables("foo", "fooz")
-          .send();
+          .open(error -> {});
 
       // then
       final var brokerActuator = JobStreamActuator.of(CLUSTER.brokers().get(MemberId.from("0")));
@@ -143,7 +143,7 @@ final class JobStreamEndpointIT {
         .workerName("foo")
         .timeout(Duration.ofMillis(100))
         .fetchVariables("foo", "fooz")
-        .send();
+        .open(error -> {});
     client
         .newStreamJobsCommand()
         .jobType("bar")
@@ -151,7 +151,7 @@ final class JobStreamEndpointIT {
         .workerName("bar")
         .timeout(Duration.ofMillis(250))
         .fetchVariables("bar", "barz")
-        .send();
+        .open(error -> {});
 
     // then
     final var actuator = JobStreamActuator.of(gateway);

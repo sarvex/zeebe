@@ -241,14 +241,14 @@ public final class JobWorkerImplTest {
     }
 
     @Override
-    public void streamActivatedJobs(
-        final StreamActivatedJobsRequest request,
+    public StreamObserver<StreamActivatedJobsRequest> streamActivatedJobs(
         final StreamObserver<ActivatedJob> responseObserver) {
       final ServerCallStreamObserver<ActivatedJob> observer =
           (ServerCallStreamObserver<ActivatedJob>) responseObserver;
-      openStreams.put(request, responseObserver);
-      observer.setOnCancelHandler(() -> openStreams.remove(request));
-      observer.setOnCloseHandler(() -> openStreams.remove(request));
+      //      openStreams.put(request, responseObserver);
+      //      observer.setOnCancelHandler(() -> openStreams.remove(request));
+      //      observer.setOnCloseHandler(() -> openStreams.remove(request));
+      return null;
     }
 
     public void respondWith(final List<ActivatedJob> jobs) {

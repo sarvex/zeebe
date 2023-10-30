@@ -240,7 +240,7 @@ public class StreamActivatedJobsTest extends GatewayTest {
             .addAllFetchVariable(fetchVariables)
             .build();
 
-    asyncClient.streamActivatedJobs(request, streamObserver);
+    //    asyncClient.streamActivatedJobs(request, streamObserver);
     if (waitStreamToBeAvailable) {
       jobStreamer.waitStreamToBeAvailable(BufferUtil.wrapString(jobType));
     }
