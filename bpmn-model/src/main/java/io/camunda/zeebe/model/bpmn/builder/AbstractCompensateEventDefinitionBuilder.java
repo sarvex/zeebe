@@ -20,6 +20,7 @@ import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Activity;
 import io.camunda.zeebe.model.bpmn.instance.CompensateEventDefinition;
 import io.camunda.zeebe.model.bpmn.instance.Event;
+import java.util.function.Function;
 
 public abstract class AbstractCompensateEventDefinitionBuilder<
         B extends AbstractCompensateEventDefinitionBuilder<B>>
@@ -35,6 +36,12 @@ public abstract class AbstractCompensateEventDefinitionBuilder<
   @Override
   public B id(final String identifier) {
     return super.id(identifier);
+  }
+
+  public B activity(final Function<B, Activity> builder) {
+    final Activity activity = builder.apply(myself);
+    activityRef(activity.getId());
+    return myself;
   }
 
   public B activityRef(final String activityId) {
