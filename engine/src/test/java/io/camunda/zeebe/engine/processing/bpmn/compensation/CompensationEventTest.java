@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.tuple;
 import io.camunda.zeebe.engine.util.EngineRule;
 import io.camunda.zeebe.protocol.record.Record;
 import io.camunda.zeebe.protocol.record.intent.ProcessInstanceIntent;
+import io.camunda.zeebe.protocol.record.intent.ProcessIntent;
 import io.camunda.zeebe.protocol.record.value.BpmnElementType;
 import io.camunda.zeebe.test.util.record.RecordingExporter;
 import io.camunda.zeebe.test.util.record.RecordingExporterTestWatcher;
@@ -37,22 +38,22 @@ public class CompensationEventTest {
 
   @Test
   public void shouldDeployCompensationBoundaryEvent() {
-    // given
-    //    final ProcessBuilder processBuilder = Bpmn.createExecutableProcess(PROCESS_ID);
-    //
-    //    final var process =
-    //        processBuilder
-    //            .startEvent()
-    //            .userTask("task-A")
-    //            .boundaryEvent()
-    //            .compensateEventDefinition()
-    //            .activity(b -> b.us)
-    //            .activityRef("undo-A")
-    //            .compensateEventDefinitionDone()
-    //            .userTask("undo-A")
-    //            .moveToActivity("task-A")
-    //            .done();
+    // when
+    ENGINE
+        .deployment()
+        .withXmlClasspathResource("/compensation/compensation-boundary-event.bpmn")
+        .deploy();
 
+    // then
+    assertThat(
+            RecordingExporter.processRecords().withBpmnProcessId("compensation-process").limit(1))
+        .extracting(Record::getIntent)
+        .contains(ProcessIntent.CREATED);
+  }
+
+  @Test
+  public void shouldInvokeCompensationHandler() {
+    // given
     ENGINE
         .deployment()
         .withXmlClasspathResource("/compensation/compensation-boundary-event.bpmn")
