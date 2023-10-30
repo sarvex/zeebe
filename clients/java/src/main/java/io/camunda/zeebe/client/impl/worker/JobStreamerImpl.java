@@ -15,11 +15,9 @@
  */
 package io.camunda.zeebe.client.impl.worker;
 
-import io.camunda.zeebe.client.api.ZeebeFuture;
-import io.camunda.zeebe.client.api.command.FinalCommandStep;
+import io.camunda.zeebe.client.api.command.StreamJobsCommandStep1.StreamController;
 import io.camunda.zeebe.client.api.command.StreamJobsCommandStep1.StreamJobsCommandStep3;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
-import io.camunda.zeebe.client.api.response.StreamJobsResponse;
 import io.camunda.zeebe.client.api.worker.BackoffSupplier;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.client.impl.Loggers;
@@ -52,10 +50,10 @@ final class JobStreamerImpl implements JobStreamer {
   private final Lock streamLock;
 
   @GuardedBy("streamLock")
-  private ZeebeFuture<StreamJobsResponse> streamControl;
+  private StreamController streamControl;
 
   @GuardedBy("streamLock")
-  private FinalCommandStep<StreamJobsResponse> command;
+  private StreamJobsCommandStep3 command;
 
   @GuardedBy("streamLock")
   private boolean isClosed;
@@ -109,11 +107,10 @@ final class JobStreamerImpl implements JobStreamer {
 
   @Override
   public void openStreamer(final Consumer<ActivatedJob> jobConsumer) {
-    final FinalCommandStep<StreamJobsResponse> command = buildCommand(jobConsumer);
-    open(command);
+    open(buildCommand(jobConsumer));
   }
 
-  private void open(final FinalCommandStep<StreamJobsResponse> command) {
+  private void open(final StreamJobsCommandStep3 command) {
     try {
       streamLock.lockInterruptibly();
     } catch (final InterruptedException e) {
@@ -150,8 +147,7 @@ final class JobStreamerImpl implements JobStreamer {
     }
   }
 
-  private FinalCommandStep<StreamJobsResponse> buildCommand(
-      final Consumer<ActivatedJob> jobConsumer) {
+  private StreamJobsCommandStep3 buildCommand(final Consumer<ActivatedJob> jobConsumer) {
     StreamJobsCommandStep3 command =
         jobClient
             .newStreamJobsCommand()
@@ -173,20 +169,21 @@ final class JobStreamerImpl implements JobStreamer {
     LOGGER.debug("Closing job stream for type '{}' and worker '{}", jobType, workerName);
     isClosed = true;
     if (streamControl != null) {
-      streamControl.cancel(true);
+      streamControl.close();
     }
   }
 
   @GuardedBy("streamLock")
   private void lockedOpen() {
     if (streamControl != null) {
-      streamControl.cancel(true);
+      streamControl.close();
       streamControl = null;
     }
-
-    final ZeebeFuture<StreamJobsResponse> control = command.send();
-    control.whenCompleteAsync((ignored, error) -> handleStreamComplete(error), executor);
-    streamControl = control;
+    streamControl =
+        command.open(
+            error -> {
+              executor.submit(() -> handleStreamComplete(error));
+            });
     LOGGER.debug("Opened job stream of type '{}' for worker '{}'", jobType, workerName);
   }
 

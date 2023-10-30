@@ -121,5 +121,8 @@ public interface StreamJobsCommandStep1 {
      * @param amount the amount of new jobs which should be consumed
      */
     void request(int amount);
+
+    @Override
+    void close();
   }
 }

@@ -73,6 +73,7 @@ public final class StreamJobsCommandImpl
     builder.setType(Objects.requireNonNull(jobType, "must specify a job type"));
     return this;
   }
+
   //
   //  @Override
   //  public ZeebeFuture<StreamJobsResponse> send() {
@@ -167,7 +168,7 @@ public final class StreamJobsCommandImpl
       }
 
       @Override
-      public void close() throws Exception {
+      public void close() {
         sender.onCompleted();
         // TODO what else do we need to close
       }
