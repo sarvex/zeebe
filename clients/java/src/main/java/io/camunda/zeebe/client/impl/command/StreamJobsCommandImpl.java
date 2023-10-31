@@ -21,9 +21,7 @@ import io.camunda.zeebe.client.api.command.StreamJobsCommandStep1;
 import io.camunda.zeebe.client.api.command.StreamJobsCommandStep1.StreamJobsCommandStep2;
 import io.camunda.zeebe.client.api.command.StreamJobsCommandStep1.StreamJobsCommandStep3;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
-import io.camunda.zeebe.client.impl.response.ActivatedJobImpl;
 import io.camunda.zeebe.gateway.protocol.GatewayGrpc.GatewayStub;
-import io.camunda.zeebe.gateway.protocol.GatewayOuterClass;
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass.StreamActivatedJobsRequest;
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass.StreamActivatedJobsRequest.Builder;
 import io.grpc.stub.StreamObserver;
@@ -34,6 +32,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -45,7 +44,7 @@ public final class StreamJobsCommandImpl
   private final Predicate<Throwable> retryPredicate;
   private final Builder builder;
 
-  private Consumer<ActivatedJob> consumer;
+  private BiConsumer<StreamController, ActivatedJob> consumer;
   private Duration requestTimeout;
 
   private final Set<String> defaultTenantIds;
@@ -111,7 +110,8 @@ public final class StreamJobsCommandImpl
   //  }
 
   @Override
-  public StreamJobsCommandStep3 consumer(final Consumer<ActivatedJob> consumer) {
+  public StreamJobsCommandStep3 biConsumer(
+      final BiConsumer<StreamController, ActivatedJob> consumer) {
     this.consumer = Objects.requireNonNull(consumer, "must specify a job consumer");
     return this;
   }
@@ -148,31 +148,20 @@ public final class StreamJobsCommandImpl
       builder.addAllTenantIds(customTenantIds);
     }
 
+    final StreamControllerImpl streamController = new StreamControllerImpl();
     final ClientJobStreamObserver jobStreamObserver =
-        new ClientJobStreamObserver(onErrorListener, jsonMapper, consumer);
+        new ClientJobStreamObserver(
+            onErrorListener, jsonMapper, job -> consumer.accept(streamController, job));
 
     GatewayStub stub = asyncStub;
     if (requestTimeout != null) {
       stub = stub.withDeadlineAfter(requestTimeout.toNanos(), TimeUnit.NANOSECONDS);
     }
 
-    final StreamObserver<StreamActivatedJobsRequest> sender =
-        stub.streamActivatedJobs(jobStreamObserver);
-    sender.onNext(builder.setAmount(1).build());
+    streamController.sender = stub.streamActivatedJobs(jobStreamObserver);
+    streamController.sender.onNext(builder.setAmount(1).build());
 
-    return new StreamController() {
-
-      @Override
-      public void request(final int amount) {
-        sender.onNext(builder.setAmount(amount).build());
-      }
-
-      @Override
-      public void close() {
-        sender.onCompleted();
-        // TODO what else do we need to close
-      }
-    };
+    return streamController;
   }
 
   @Override
@@ -199,8 +188,19 @@ public final class StreamJobsCommandImpl
     return tenantIds(Arrays.asList(tenantIds));
   }
 
-  private void consumeJob(final GatewayOuterClass.ActivatedJob job) {
-    final ActivatedJobImpl mappedJob = new ActivatedJobImpl(jsonMapper, job);
-    consumer.accept(mappedJob);
+  private static final class StreamControllerImpl implements StreamController {
+    private final StreamActivatedJobsRequest.Builder requestBuilder =
+        StreamActivatedJobsRequest.newBuilder();
+    private StreamObserver<StreamActivatedJobsRequest> sender;
+
+    @Override
+    public void request(final int amount) {
+      sender.onNext(requestBuilder.setAmount(amount).build());
+    }
+
+    @Override
+    public void close() {
+      sender.onCompleted();
+    }
   }
 }

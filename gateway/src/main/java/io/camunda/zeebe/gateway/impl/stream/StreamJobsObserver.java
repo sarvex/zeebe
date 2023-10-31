@@ -41,6 +41,7 @@ public final class StreamJobsObserver
 
   private ClientStreamId streamId;
   private boolean isClosed;
+  private long amount;
 
   public StreamJobsObserver(
       final ConcurrencyControl executor,
@@ -71,6 +72,10 @@ public final class StreamJobsObserver
     try {
       return executor.call(
           () -> {
+            if (amount <= 0) {
+              throw new IllegalStateException("No capacity left on stream");
+            }
+
             handlePushedJob(payload);
             return null;
           });
@@ -88,6 +93,7 @@ public final class StreamJobsObserver
     final var activatedJob = ResponseMapper.toActivatedJob(deserializedJob);
     try {
       clientStream.onNext(activatedJob);
+      amount--;
     } catch (final Exception e) {
       clientStream.onError(e);
       throw e;
@@ -120,6 +126,7 @@ public final class StreamJobsObserver
     }
 
     LOGGER.info("Received control message: {}", request.getAmount());
+    amount = request.getAmount();
   }
 
   private void initializeStreamOnFirstRequest(final StreamActivatedJobsRequest value) {
@@ -149,6 +156,7 @@ public final class StreamJobsObserver
       return;
     }
 
+    amount = value.getAmount();
     executor.runOnCompletion(
         jobStreamer.add(wrapString(jobType), properties, this), this::onStreamAdded);
   }

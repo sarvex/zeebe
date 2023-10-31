@@ -19,6 +19,7 @@ import io.camunda.zeebe.client.api.ExperimentalApi;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import java.time.Duration;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 @ExperimentalApi("https://github.com/camunda/zeebe/issues/11231")
@@ -42,7 +43,11 @@ public interface StreamJobsCommandStep1 {
      * @return the builder's next step
      * @throws NullPointerException if the consumer is null
      */
-    StreamJobsCommandStep3 consumer(final Consumer<ActivatedJob> consumer);
+    default StreamJobsCommandStep3 consumer(final Consumer<ActivatedJob> consumer) {
+      return biConsumer((ctrl, job) -> consumer.accept(job));
+    }
+
+    StreamJobsCommandStep3 biConsumer(final BiConsumer<StreamController, ActivatedJob> consumer);
   }
 
   interface StreamJobsCommandStep3 extends CommandWithOneOrMoreTenantsStep<StreamJobsCommandStep3> {

@@ -10,6 +10,7 @@ package io.camunda.zeebe.it.client.command;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.zeebe.client.ZeebeClient;
+import io.camunda.zeebe.client.api.command.StreamJobsCommandStep1.StreamController;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -34,9 +35,11 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.Future;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.awaitility.Awaitility;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -79,9 +82,10 @@ final class StreamJobsTest {
             .serviceTask("task03", b -> b.zeebeJobType(uniqueId))
             .endEvent()
             .done();
-    final Consumer<ActivatedJob> jobHandler =
-        job -> {
+    final BiConsumer<StreamController, ActivatedJob> jobHandler =
+        (stream, job) -> {
           jobs.add(job);
+          stream.request(1);
           client.newCompleteCommand(job).send();
         };
     deployProcess(process);
@@ -93,12 +97,12 @@ final class StreamJobsTest {
         client
             .newStreamJobsCommand()
             .jobType(uniqueId)
-            .consumer(jobHandler)
+            .biConsumer(jobHandler)
             .workerName("streamer")
             .fetchVariables("foo")
             .tenantIds(TenantOwned.DEFAULT_TENANT_IDENTIFIER)
             .timeout(Duration.ofSeconds(5))
-            .open(error -> {});
+            .open(Assertions::fail);
     final boolean processInstanceCompleted;
 
     try (stream) {
