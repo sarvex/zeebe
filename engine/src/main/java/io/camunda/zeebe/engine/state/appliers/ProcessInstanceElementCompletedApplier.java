@@ -20,7 +20,6 @@ import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstan
 import io.camunda.zeebe.protocol.record.intent.ProcessInstanceIntent;
 import io.camunda.zeebe.protocol.record.value.BpmnElementType;
 import io.camunda.zeebe.protocol.record.value.BpmnEventType;
-import io.camunda.zeebe.util.buffer.BufferUtil;
 import java.util.EnumSet;
 
 /** Applies state changes for `ProcessInstance:Element_Completed` */
@@ -91,6 +90,7 @@ final class ProcessInstanceElementCompletedApplier
   }
 
   private void registerCompensationHandler(final long key, final ProcessInstanceRecord value) {
+    // this may cost some performance because of the lookup
     final var theElement =
         processState.getFlowElement(
             value.getProcessDefinitionKey(),
@@ -105,14 +105,9 @@ final class ProcessInstanceElementCompletedApplier
 
     compensationBoundaryEvent.ifPresent(
         boundaryEvent -> {
-          final ExecutableActivity compensationHandler =
-              boundaryEvent.getCompensation().getCompensationHandler();
-
           // todo: don't use the key - this is wrong
           elementInstanceState.putCompensationHandler(
-              value.getProcessInstanceKey(),
-              key,
-              BufferUtil.bufferAsString(compensationHandler.getId()));
+              value.getProcessInstanceKey(), key, value.getElementId());
         });
   }
 

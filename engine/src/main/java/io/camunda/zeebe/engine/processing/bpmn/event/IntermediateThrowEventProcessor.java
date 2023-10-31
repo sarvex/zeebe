@@ -325,7 +325,11 @@ public class IntermediateThrowEventProcessor
       } else {
         // activate the compensation handler
         // wait for completing
-
+        compensationHandlers.forEach(
+            compensationHandler -> {
+              // todo: use the element id of the completed element
+              eventPublicationBehavior.activateCompensationHandler(compensationHandler, activated);
+            });
       }
     }
 
