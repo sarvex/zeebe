@@ -34,6 +34,7 @@ import io.camunda.zeebe.protocol.record.value.BpmnEventType;
 import io.camunda.zeebe.stream.api.state.KeyGenerator;
 import io.camunda.zeebe.util.Either;
 import io.camunda.zeebe.util.buffer.BufferUtil;
+import java.util.List;
 import java.util.Optional;
 import org.agrona.DirectBuffer;
 
@@ -241,5 +242,28 @@ public final class BpmnEventPublicationBehavior {
 
     commandWriter.appendNewCommand(
         ProcessInstanceIntent.ACTIVATE_ELEMENT, compensationHandlerRecord);
+  }
+
+  public void completeCompensationThrowEvent(final BpmnElementContext context) {
+    final List<ElementInstance> children =
+        elementInstanceState.getChildren(context.getElementInstanceKey());
+
+    children.stream()
+        .filter(
+            elementInstance ->
+                elementInstance.getValue().getBpmnEventType() == BpmnEventType.COMPENSATION
+                    && elementInstance.getValue().getBpmnElementType()
+                        == BpmnElementType.INTERMEDIATE_THROW_EVENT)
+        .findFirst()
+        .ifPresent(
+            compensationThrowEvent -> {
+              final long compensationThrowElementInstanceKey = compensationThrowEvent.getKey();
+              final ProcessInstanceRecord compensationRecord = compensationThrowEvent.getValue();
+
+              commandWriter.appendFollowUpCommand(
+                  compensationThrowElementInstanceKey,
+                  ProcessInstanceIntent.COMPLETE_ELEMENT,
+                  compensationRecord);
+            });
   }
 }

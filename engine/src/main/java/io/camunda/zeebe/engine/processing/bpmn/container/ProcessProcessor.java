@@ -12,6 +12,7 @@ import io.camunda.zeebe.engine.processing.bpmn.BpmnElementContext;
 import io.camunda.zeebe.engine.processing.bpmn.BpmnProcessingException;
 import io.camunda.zeebe.engine.processing.bpmn.behavior.BpmnBehaviors;
 import io.camunda.zeebe.engine.processing.bpmn.behavior.BpmnBufferedMessageStartEventBehavior;
+import io.camunda.zeebe.engine.processing.bpmn.behavior.BpmnEventPublicationBehavior;
 import io.camunda.zeebe.engine.processing.bpmn.behavior.BpmnEventSubscriptionBehavior;
 import io.camunda.zeebe.engine.processing.bpmn.behavior.BpmnIncidentBehavior;
 import io.camunda.zeebe.engine.processing.bpmn.behavior.BpmnProcessResultSenderBehavior;
@@ -36,6 +37,8 @@ public final class ProcessProcessor
   private final BpmnProcessResultSenderBehavior processResultSenderBehavior;
   private final BpmnBufferedMessageStartEventBehavior bufferedMessageStartEventBehavior;
 
+  private final BpmnEventPublicationBehavior eventPublicationBehavior;
+
   public ProcessProcessor(
       final BpmnBehaviors bpmnBehaviors,
       final BpmnStateTransitionBehavior stateTransitionBehavior) {
@@ -45,6 +48,7 @@ public final class ProcessProcessor
     incidentBehavior = bpmnBehaviors.incidentBehavior();
     processResultSenderBehavior = bpmnBehaviors.processResultSenderBehavior();
     bufferedMessageStartEventBehavior = bpmnBehaviors.bufferedMessageStartEventBehavior();
+    eventPublicationBehavior = bpmnBehaviors.eventPublicationBehavior();
   }
 
   @Override
@@ -137,6 +141,12 @@ public final class ProcessProcessor
     if (stateBehavior.canBeCompleted(childContext)) {
       stateTransitionBehavior.completeElement(flowScopeContext);
     }
+
+    // compensation logic ============>
+    // todo: check if there is an active compensation
+    // if all compensation handlers are completed then we complete the throw event
+
+    eventPublicationBehavior.completeCompensationThrowEvent(flowScopeContext);
   }
 
   @Override
