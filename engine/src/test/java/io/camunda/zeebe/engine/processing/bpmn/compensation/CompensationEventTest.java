@@ -98,7 +98,7 @@ public class CompensationEventTest {
     assertThat(
             RecordingExporter.processInstanceRecords()
                 .withProcessInstanceKey(processInstanceKey)
-                .limitToProcessInstanceCompleted())
+                .limit("Activity_1epoz0g", ProcessInstanceIntent.ELEMENT_ACTIVATED))
         .extracting(r -> r.getValue().getBpmnElementType(), Record::getIntent)
         .containsSubsequence(
             tuple(BpmnElementType.USER_TASK, ProcessInstanceIntent.ELEMENT_COMPLETED),
