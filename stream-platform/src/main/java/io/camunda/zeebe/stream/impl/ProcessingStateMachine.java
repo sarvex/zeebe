@@ -395,7 +395,7 @@ public final class ProcessingStateMachine {
     final var toWriteEntries = new ArrayList<LogAppendEntry>();
 
     processingResult.getRecordBatch().entries().stream()
-        .skip(lastProcessingResultSize) // because the result builder is reused
+        //        .skip(lastProcessingResultSize) // because the result builder is reused
         .forEachOrdered(
             entry -> {
               var toWriteEntry = entry;
