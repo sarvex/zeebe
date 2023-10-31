@@ -67,4 +67,6 @@ public interface ElementInstanceState {
    * @return a boolean indicating if there are running instances
    */
   boolean hasActiveProcessInstances(long processDefinitionKey, final List<Long> bannedInstances);
+
+  List<String> getCompensationHandlerByProcessInstanceKey(long processInstanceKey);
 }

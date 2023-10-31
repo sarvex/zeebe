@@ -235,4 +235,9 @@ public final class BpmnStateBehavior {
       final long flowScopeKey, final DirectBuffer gatewayElementId) {
     return elementInstanceState.getNumberOfTakenSequenceFlows(flowScopeKey, gatewayElementId);
   }
+
+  public List<String> getCompensationHandlers(final BpmnElementContext context) {
+    return elementInstanceState.getCompensationHandlerByProcessInstanceKey(context.getProcessInstanceKey());
+  }
+
 }

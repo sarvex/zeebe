@@ -414,6 +414,22 @@ public final class DbElementInstanceState implements MutableElementInstanceState
     return hasActiveInstances.get();
   }
 
+  @Override
+  public List<String> getCompensationHandlerByProcessInstanceKey(final long processInstanceKey) {
+
+    final var compensationHandlerIds = new ArrayList<String>();
+
+    compensationProcessInstanceKey.wrapLong(processInstanceKey);
+    compensationHandlerColumnFamily.whileEqualPrefix(
+        compensationProcessInstanceKey,
+        (key, value) -> {
+          final DbString handlerId = key.second().second();
+          compensationHandlerIds.add(handlerId.toString());
+        });
+
+    return compensationHandlerIds;
+  }
+
   private ElementInstance copyElementInstance(final ElementInstance elementInstance) {
     if (elementInstance != null) {
       final byte[] bytes = new byte[elementInstance.getLength()];

@@ -16,6 +16,7 @@ import io.camunda.zeebe.engine.processing.bpmn.behavior.BpmnEventPublicationBeha
 import io.camunda.zeebe.engine.processing.bpmn.behavior.BpmnIncidentBehavior;
 import io.camunda.zeebe.engine.processing.bpmn.behavior.BpmnJobBehavior;
 import io.camunda.zeebe.engine.processing.bpmn.behavior.BpmnSignalBehavior;
+import io.camunda.zeebe.engine.processing.bpmn.behavior.BpmnStateBehavior;
 import io.camunda.zeebe.engine.processing.bpmn.behavior.BpmnStateTransitionBehavior;
 import io.camunda.zeebe.engine.processing.bpmn.behavior.BpmnVariableMappingBehavior;
 import io.camunda.zeebe.engine.processing.common.ExpressionProcessor;
@@ -45,6 +46,8 @@ public class IntermediateThrowEventProcessor
   private final ExpressionProcessor expressionProcessor;
   private final BpmnSignalBehavior signalBehavior;
 
+  private final BpmnStateBehavior stateBehavior;
+
   public IntermediateThrowEventProcessor(
       final BpmnBehaviors bpmnBehaviors,
       final BpmnStateTransitionBehavior stateTransitionBehavior) {
@@ -55,6 +58,7 @@ public class IntermediateThrowEventProcessor
     eventPublicationBehavior = bpmnBehaviors.eventPublicationBehavior();
     expressionProcessor = bpmnBehaviors.expressionBehavior();
     signalBehavior = bpmnBehaviors.signalBehavior();
+    stateBehavior = bpmnBehaviors.stateBehavior();
   }
 
   @Override
@@ -312,12 +316,17 @@ public class IntermediateThrowEventProcessor
       final BpmnElementContext activated =
           stateTransitionBehavior.transitionToActivated(activating, element.getEventType());
 
-      // todo:
       // check for activities that are completed and have compensation handlers
-      // activate the compensation handler
-      // wait for completing
+      final List<String> compensationHandlers = stateBehavior.getCompensationHandlers(activated);
 
-      stateTransitionBehavior.completeElement(activated);
+      if (compensationHandlers.isEmpty()) {
+        stateTransitionBehavior.completeElement(activated);
+
+      } else {
+        // activate the compensation handler
+        // wait for completing
+
+      }
     }
 
     @Override
