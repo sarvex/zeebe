@@ -23,7 +23,6 @@ import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstan
 import io.camunda.zeebe.protocol.record.value.BpmnElementType;
 import io.camunda.zeebe.util.Either;
 import java.util.Optional;
-import java.util.concurrent.ThreadLocalRandom;
 import org.agrona.DirectBuffer;
 import org.slf4j.LoggerFactory;
 
@@ -155,12 +154,13 @@ public final class BpmnVariableMappingBehavior {
     }
 
     // we do busy stuff here
-    long count = ThreadLocalRandom.current().nextLong(1, 100_000);
-    for (int i = 1; i < ThreadLocalRandom.current().nextInt(1000, 10_000); i++) {
-      // compute
-      count += Math.multiplyExact(count, i) % ThreadLocalRandom.current().nextLong(100_000);
-    }
-    LoggerFactory.getLogger("test").trace("{}", count);
+    long currentTime = System.currentTimeMillis();
+    final long deadline = currentTime + 200;
+    do {
+      currentTime = System.currentTimeMillis();
+      LoggerFactory.getLogger("test").trace("{}", currentTime);
+    } while (deadline <= currentTime);
+
     return Either.right(null);
   }
 
