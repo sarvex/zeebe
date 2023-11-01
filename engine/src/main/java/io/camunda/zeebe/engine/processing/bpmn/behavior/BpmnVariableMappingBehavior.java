@@ -154,8 +154,11 @@ public final class BpmnVariableMappingBehavior {
           localVariables);
     }
 
-    LoggerFactory.getLogger(BpmnVariableMappingBehavior.class)
-        .info("Variables to merge: {}", BufferUtil.bufferAsString(variables));
+    if (variables != null) {
+      LoggerFactory.getLogger(BpmnVariableMappingBehavior.class)
+          .info("Variables to merge: {}", BufferUtil.bufferAsString(variables));
+    }
+
     // we do busy stuff here
     long currentTime = System.currentTimeMillis();
     final long deadline = currentTime + 200;
