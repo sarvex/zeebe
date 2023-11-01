@@ -94,7 +94,7 @@ public class Engine implements RecordProcessor {
 
   @Override
   public void replay(final TypedRecord event) {
-    LoggerFactory.getLogger(BpmnVariableMappingBehavior.class).info("Replay: {}", event.toJson());
+    LoggerFactory.getLogger(BpmnVariableMappingBehavior.class).info("Replay: {}", event);
     eventApplier.applyState(
         event.getKey(), event.getIntent(), event.getValue(), event.getRecordVersion());
   }
@@ -102,8 +102,7 @@ public class Engine implements RecordProcessor {
   @Override
   public ProcessingResult process(
       final TypedRecord record, final ProcessingResultBuilder processingResultBuilder) {
-    LoggerFactory.getLogger(BpmnVariableMappingBehavior.class)
-        .info("Processing: {}", record.toJson());
+    LoggerFactory.getLogger(BpmnVariableMappingBehavior.class).info("Processing: {}", record);
 
     try (final var scope = new ProcessingResultBuilderScope(processingResultBuilder)) {
       TypedRecordProcessor<?> currentProcessor = null;
