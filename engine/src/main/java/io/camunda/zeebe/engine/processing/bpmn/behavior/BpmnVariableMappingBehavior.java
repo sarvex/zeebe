@@ -152,6 +152,13 @@ public final class BpmnVariableMappingBehavior {
           localVariables);
     }
 
+
+    try {
+      // we do busy stuff here
+      Thread.sleep(200L);
+    } catch (final InterruptedException e) {
+      // ignore
+    }
     return Either.right(null);
   }
 
