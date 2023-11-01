@@ -162,9 +162,14 @@ public final class BpmnVariableMappingBehavior {
     // we do busy stuff here
     long currentTime = System.currentTimeMillis();
     final long deadline = currentTime + 200;
+    boolean print = true;
     do {
       currentTime = System.currentTimeMillis();
-      LoggerFactory.getLogger("test").trace("{}", currentTime);
+      if (print && variables != null && (deadline - currentTime) <= 100) {
+        LoggerFactory.getLogger(BpmnVariableMappingBehavior.class)
+            .info("Variables to merge: {}", BufferUtil.bufferAsString(variables));
+        print = false;
+      }
     } while (deadline <= currentTime);
 
     return Either.right(null);
