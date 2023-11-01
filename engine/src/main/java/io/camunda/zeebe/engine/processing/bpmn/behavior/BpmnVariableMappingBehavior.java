@@ -22,6 +22,7 @@ import io.camunda.zeebe.engine.state.instance.EventTrigger;
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceRecord;
 import io.camunda.zeebe.protocol.record.value.BpmnElementType;
 import io.camunda.zeebe.util.Either;
+import io.camunda.zeebe.util.buffer.BufferUtil;
 import java.util.Optional;
 import org.agrona.DirectBuffer;
 import org.slf4j.LoggerFactory;
@@ -153,6 +154,8 @@ public final class BpmnVariableMappingBehavior {
           localVariables);
     }
 
+    LoggerFactory.getLogger(BpmnVariableMappingBehavior.class)
+        .info("Variables to merge: {}", BufferUtil.bufferAsString(variables));
     // we do busy stuff here
     long currentTime = System.currentTimeMillis();
     final long deadline = currentTime + 200;
