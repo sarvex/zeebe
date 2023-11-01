@@ -7,6 +7,7 @@
  */
 package io.camunda.zeebe.engine;
 
+import io.camunda.zeebe.engine.processing.bpmn.behavior.BpmnVariableMappingBehavior;
 import io.camunda.zeebe.engine.processing.streamprocessor.RecordProcessorMap;
 import io.camunda.zeebe.engine.processing.streamprocessor.TypedRecordProcessor;
 import io.camunda.zeebe.engine.processing.streamprocessor.TypedRecordProcessor.ProcessingError;
@@ -36,6 +37,7 @@ import java.util.EnumSet;
 import java.util.Objects;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Engine implements RecordProcessor {
 
@@ -92,6 +94,7 @@ public class Engine implements RecordProcessor {
 
   @Override
   public void replay(final TypedRecord event) {
+    LoggerFactory.getLogger(BpmnVariableMappingBehavior.class).info("Replay: {}", event.toJson());
     eventApplier.applyState(
         event.getKey(), event.getIntent(), event.getValue(), event.getRecordVersion());
   }
@@ -99,6 +102,8 @@ public class Engine implements RecordProcessor {
   @Override
   public ProcessingResult process(
       final TypedRecord record, final ProcessingResultBuilder processingResultBuilder) {
+    LoggerFactory.getLogger(BpmnVariableMappingBehavior.class)
+        .info("Processing: {}", record.toJson());
 
     try (final var scope = new ProcessingResultBuilderScope(processingResultBuilder)) {
       TypedRecordProcessor<?> currentProcessor = null;
