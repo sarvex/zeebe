@@ -43,12 +43,12 @@ public final class StreamJobsCommandImpl
   private final JsonMapper jsonMapper;
   private final Predicate<Throwable> retryPredicate;
   private final Builder builder;
+  private final Set<String> defaultTenantIds;
+  private final Set<String> customTenantIds;
 
   private BiConsumer<StreamController, ActivatedJob> consumer;
   private Duration requestTimeout;
-
-  private final Set<String> defaultTenantIds;
-  private final Set<String> customTenantIds;
+  private int amount;
 
   public StreamJobsCommandImpl(
       final GatewayStub asyncStub,
@@ -159,7 +159,7 @@ public final class StreamJobsCommandImpl
     }
 
     streamController.sender = stub.streamActivatedJobs(jobStreamObserver);
-    streamController.sender.onNext(builder.setAmount(1).build());
+    streamController.sender.onNext(builder.setAmount(amount).build());
 
     return streamController;
   }
@@ -167,6 +167,12 @@ public final class StreamJobsCommandImpl
   @Override
   public StreamJobsCommandStep3 requestTimeout(final Duration requestTimeout) {
     this.requestTimeout = requestTimeout;
+    return this;
+  }
+
+  @Override
+  public StreamJobsCommandStep3 amount(final int amount) {
+    this.amount = amount;
     return this;
   }
 

@@ -43,6 +43,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Rule;
 import org.junit.jupiter.api.AfterEach;
@@ -87,7 +88,7 @@ final class JobStreamImplTest {
   @Test
   void shouldCancelStreamOnClose() {
     // given
-    jobStreamer.openStreamer(ignored -> {});
+    jobStreamer.openStreamer(ignored -> {}, new AtomicInteger(10));
 
     // when
     final ServerCallStreamObserver<GatewayOuterClass.ActivatedJob> registeredStream =
@@ -112,7 +113,7 @@ final class JobStreamImplTest {
             .build();
 
     // when
-    jobStreamer.openStreamer(ignored -> {});
+    jobStreamer.openStreamer(ignored -> {}, new AtomicInteger(10));
 
     // then
     assertThat(service.lastRequest()).isEqualTo(expectedRequest);
@@ -122,7 +123,7 @@ final class JobStreamImplTest {
   void shouldForwardJobsToConsumer() {
     // given
     final List<ActivatedJob> jobs = new ArrayList<>();
-    jobStreamer.openStreamer(jobs::add);
+    jobStreamer.openStreamer(jobs::add, new AtomicInteger(10));
 
     // when
     service.pushJob();
@@ -135,7 +136,7 @@ final class JobStreamImplTest {
   @Test
   void shouldBackOffOnStreamError() {
     // given
-    jobStreamer.openStreamer(ignored -> {});
+    jobStreamer.openStreamer(ignored -> {}, new AtomicInteger(10));
     final ServerCallStreamObserver<GatewayOuterClass.ActivatedJob> lastStream =
         service.lastStream();
 
@@ -154,7 +155,7 @@ final class JobStreamImplTest {
   @Test
   void shouldNotReopenStreamOnErrorIfClosed() {
     // given
-    jobStreamer.openStreamer(ignored -> {});
+    jobStreamer.openStreamer(ignored -> {}, new AtomicInteger(10));
     final ServerCallStreamObserver<GatewayOuterClass.ActivatedJob> lastStream =
         service.lastStream();
 

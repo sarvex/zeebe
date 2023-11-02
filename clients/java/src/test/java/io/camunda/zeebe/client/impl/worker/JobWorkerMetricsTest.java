@@ -141,9 +141,13 @@ final class JobWorkerMetricsTest {
     }
 
     @Override
-    public void openStreamer(final Consumer<ActivatedJob> jobConsumer) {
+    public void openStreamer(
+        final Consumer<ActivatedJob> jobConsumer, final AtomicInteger capacity) {
       consumerRef.set(jobConsumer);
     }
+
+    @Override
+    public void request() {}
 
     private void streamJob() {
       final ActivatedJobImpl job = new ActivatedJobImpl(mapper, TestData.job());

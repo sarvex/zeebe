@@ -16,6 +16,7 @@
 package io.camunda.zeebe.client.impl.worker;
 
 import io.camunda.zeebe.client.api.response.ActivatedJob;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import net.jcip.annotations.ThreadSafe;
 
@@ -27,7 +28,9 @@ interface JobStreamer extends AutoCloseable {
 
   boolean isOpen();
 
-  void openStreamer(final Consumer<ActivatedJob> jobConsumer);
+  void openStreamer(final Consumer<ActivatedJob> jobConsumer, final AtomicInteger capacity);
+
+  void request();
 
   static JobStreamer noop() {
     return NoopJobStream.INSTANCE;
@@ -46,6 +49,10 @@ interface JobStreamer extends AutoCloseable {
     }
 
     @Override
-    public void openStreamer(final Consumer<ActivatedJob> jobConsumer) {}
+    public void openStreamer(
+        final Consumer<ActivatedJob> jobConsumer, final AtomicInteger capacity) {}
+
+    @Override
+    public void request() {}
   }
 }

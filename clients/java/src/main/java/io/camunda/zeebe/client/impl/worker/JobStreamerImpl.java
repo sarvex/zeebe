@@ -21,12 +21,14 @@ import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.BackoffSupplier;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.client.impl.Loggers;
+import io.camunda.zeebe.gateway.protocol.GatewayOuterClass.StreamActivatedJobsRequest;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -38,6 +40,9 @@ import org.slf4j.Logger;
 final class JobStreamerImpl implements JobStreamer {
   private static final Logger LOGGER = Loggers.JOB_WORKER_LOGGER;
 
+  private final StreamActivatedJobsRequest.Builder amountRequest =
+      StreamActivatedJobsRequest.newBuilder();
+
   private final JobClient jobClient;
   private final String jobType;
   private final String workerName;
@@ -48,6 +53,9 @@ final class JobStreamerImpl implements JobStreamer {
   private final BackoffSupplier backoffSupplier;
   private final ScheduledExecutorService executor;
   private final Lock streamLock;
+
+  @GuardedBy("streamLock")
+  private AtomicInteger capacity;
 
   @GuardedBy("streamLock")
   private StreamController streamControl;
@@ -106,11 +114,35 @@ final class JobStreamerImpl implements JobStreamer {
   }
 
   @Override
-  public void openStreamer(final Consumer<ActivatedJob> jobConsumer) {
-    open(buildCommand(jobConsumer));
+  public void openStreamer(final Consumer<ActivatedJob> jobConsumer, final AtomicInteger capacity) {
+    open(buildCommand(jobConsumer, capacity.get()), capacity);
   }
 
-  private void open(final StreamJobsCommandStep3 command) {
+  @Override
+  public void request() {
+    try {
+      streamLock.lockInterruptibly();
+    } catch (final InterruptedException e) {
+      Thread.currentThread().interrupt();
+      return;
+    }
+
+    if (isClosed) {
+      LOGGER.trace(
+          "Skip increasing capacity for stream '{}' for worker '{}' because it's closed",
+          jobType,
+          workerName);
+      return;
+    }
+
+    try {
+      lockedRequest();
+    } finally {
+      streamLock.unlock();
+    }
+  }
+
+  private void open(final StreamJobsCommandStep3 command, final AtomicInteger capacity) {
     try {
       streamLock.lockInterruptibly();
     } catch (final InterruptedException e) {
@@ -126,6 +158,7 @@ final class JobStreamerImpl implements JobStreamer {
 
     try {
       this.command = command;
+      this.capacity = capacity;
       lockedOpen();
     } finally {
       streamLock.unlock();
@@ -147,7 +180,8 @@ final class JobStreamerImpl implements JobStreamer {
     }
   }
 
-  private StreamJobsCommandStep3 buildCommand(final Consumer<ActivatedJob> jobConsumer) {
+  private StreamJobsCommandStep3 buildCommand(
+      final Consumer<ActivatedJob> jobConsumer, final int amount) {
     StreamJobsCommandStep3 command =
         jobClient
             .newStreamJobsCommand()
@@ -155,6 +189,7 @@ final class JobStreamerImpl implements JobStreamer {
             .consumer(jobConsumer)
             .workerName(workerName)
             .tenantIds(tenantIds)
+            .amount(amount)
             .timeout(timeout);
 
     if (fetchVariables != null) {
@@ -166,6 +201,10 @@ final class JobStreamerImpl implements JobStreamer {
 
   @GuardedBy("streamLock")
   private void lockedClose() {
+    if (isClosed) {
+      return;
+    }
+
     LOGGER.debug("Closing job stream for type '{}' and worker '{}", jobType, workerName);
     isClosed = true;
     if (streamControl != null) {
@@ -204,7 +243,22 @@ final class JobStreamerImpl implements JobStreamer {
           .addArgument(() -> Duration.ofMillis(retryDelay))
           .setMessage("Recreating closed stream of type '{}' and worker '{}' in {}")
           .log();
-      executor.schedule(() -> open(command), retryDelay, TimeUnit.MILLISECONDS);
+      executor.schedule(() -> open(command, capacity), retryDelay, TimeUnit.MILLISECONDS);
+    }
+  }
+
+  @GuardedBy("streamLock")
+  private void lockedRequest() {
+    if (isClosed) {
+      LOGGER.trace(
+          "Skip increasing capacity of job stream of type '{}' for worker '{}'",
+          jobType,
+          workerName);
+      return;
+    }
+
+    if (streamControl != null) {
+      streamControl.request(capacity.get());
     }
   }
 

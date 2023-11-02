@@ -203,6 +203,33 @@ final class JobWorkerTest {
     }
   }
 
+  @Test
+  void shouldStreamWithFlowControl() {
+    // given
+    final var jobHandler = new RecordingJobHandler();
+    final var builder =
+        client
+            .getClient()
+            .newWorker()
+            .jobType(jobType)
+            .handler(jobHandler)
+            .streamEnabled(true)
+            .maxJobsActive(10);
+
+    // when
+    try (final var ignored = builder.open()) {
+      awaitStreamRegistered(jobType);
+      ZEEBE.stop().start().awaitCompleteTopology();
+      // need to stream being registered, as otherwise the job will be polled, not streamed
+      awaitStreamRegistered(jobType);
+      client.createJobs(jobType, 30);
+
+      // then - expect job to be activated
+      Awaitility.await("until all jobs are activated")
+          .untilAsserted(() -> assertThat(jobHandler.getHandledJobs()).hasSize(30));
+    }
+  }
+
   private static Stream<Named<BiFunction<String, JobWorkerBuilderStep3, JobWorker>>>
       provideWorkerConfigurators() {
     return Stream.of(

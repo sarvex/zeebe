@@ -115,6 +115,8 @@ public interface StreamJobsCommandStep1 {
     StreamController open(Consumer<Throwable> errorHandler);
 
     StreamJobsCommandStep3 requestTimeout(Duration timeout);
+
+    StreamJobsCommandStep3 amount(final int amount);
   }
 
   interface StreamController extends AutoCloseable {

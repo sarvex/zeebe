@@ -60,6 +60,7 @@ public final class JobWorkerImpl implements JobWorker, Closeable {
   private final int maxJobsActive;
   private final int activationThreshold;
   private final AtomicInteger remainingJobs;
+  private final AtomicInteger capacity;
 
   // job execution facilities
   private final ScheduledExecutorService executor;
@@ -88,6 +89,7 @@ public final class JobWorkerImpl implements JobWorker, Closeable {
     this.maxJobsActive = maxJobsActive;
     activationThreshold = Math.round(maxJobsActive * 0.3f);
     remainingJobs = new AtomicInteger(0);
+    capacity = new AtomicInteger(maxJobsActive);
 
     this.executor = executor;
     this.jobHandlerFactory = jobHandlerFactory;
@@ -104,7 +106,7 @@ public final class JobWorkerImpl implements JobWorker, Closeable {
   }
 
   private void openStream() {
-    jobStreamer.openStreamer(this::handleStreamedJob);
+    jobStreamer.openStreamer(this::handleStreamedJob, capacity);
   }
 
   @Override
@@ -142,8 +144,8 @@ public final class JobWorkerImpl implements JobWorker, Closeable {
     }
   }
 
-  private boolean shouldPoll(final int remainingJobs) {
-    return acquiringJobs.get() && remainingJobs <= activationThreshold;
+  private boolean shouldPoll(final int actualCapacity) {
+    return acquiringJobs.get() && actualCapacity > activationThreshold;
   }
 
   private void tryPoll() {
@@ -235,23 +237,31 @@ public final class JobWorkerImpl implements JobWorker, Closeable {
 
   private void handleJob(final ActivatedJob job) {
     metrics.jobActivated(1);
+    capacity.decrementAndGet();
     executor.execute(jobHandlerFactory.create(job, this::handleJobFinished));
   }
 
   private void handleStreamedJob(final ActivatedJob job) {
     metrics.jobActivated(1);
+    capacity.decrementAndGet();
     executor.execute(jobHandlerFactory.create(job, this::handleStreamJobFinished));
   }
 
   private void handleJobFinished() {
-    final int actualRemainingJobs = remainingJobs.decrementAndGet();
-    if (!isPollScheduled.get() && shouldPoll(actualRemainingJobs)) {
+    final int actualCapacity = capacity.incrementAndGet();
+    remainingJobs.decrementAndGet();
+    if (!isPollScheduled.get() && shouldPoll(actualCapacity)) {
       tryPoll();
     }
     metrics.jobHandled(1);
   }
 
   private void handleStreamJobFinished() {
+    final int actualCapacity = capacity.incrementAndGet();
+    if (actualCapacity > activationThreshold) {
+      jobStreamer.request();
+    }
+
     metrics.jobHandled(1);
   }
 }
