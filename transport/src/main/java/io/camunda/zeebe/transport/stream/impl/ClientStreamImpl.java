@@ -82,6 +82,10 @@ final class ClientStreamImpl<M extends BufferWriter> implements ClientStream<M> 
     return capacity;
   }
 
+  public void decrementCapacity() {
+    capacity--;
+  }
+
   public void capacity(final int capacity) {
     this.capacity = capacity;
   }
