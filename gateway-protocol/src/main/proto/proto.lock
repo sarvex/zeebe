@@ -67,6 +67,11 @@
                 "name": "tenantIds",
                 "type": "string",
                 "is_repeated": true
+              },
+              {
+                "id": 7,
+                "name": "amount",
+                "type": "int64"
               }
             ]
           },
@@ -1225,6 +1230,7 @@
                 "name": "StreamActivatedJobs",
                 "in_type": "StreamActivatedJobsRequest",
                 "out_type": "ActivatedJob",
+                "in_streamed": true,
                 "out_streamed": true
               },
               {
