@@ -13,17 +13,34 @@ import io.camunda.zeebe.scheduler.future.CompletableActorFuture;
 import io.camunda.zeebe.transport.stream.api.ClientStream;
 import io.camunda.zeebe.transport.stream.api.ClientStreamConsumer;
 import io.camunda.zeebe.util.buffer.BufferWriter;
+import java.util.Objects;
 import java.util.Set;
 import org.agrona.DirectBuffer;
 
 /** Represents a registered client stream. * */
-record ClientStreamImpl<M extends BufferWriter>(
-    ClientStreamIdImpl streamId,
-    AggregatedClientStream<M> serverStream,
-    DirectBuffer streamType,
-    M metadata,
-    ClientStreamConsumer clientStreamConsumer)
-    implements ClientStream<M> {
+final class ClientStreamImpl<M extends BufferWriter> implements ClientStream<M> {
+  private final ClientStreamIdImpl streamId;
+  private final AggregatedClientStream<M> serverStream;
+  private final DirectBuffer streamType;
+  private final M metadata;
+  private final ClientStreamConsumer clientStreamConsumer;
+
+  private int capacity;
+
+  ClientStreamImpl(
+      final ClientStreamIdImpl streamId,
+      final AggregatedClientStream<M> serverStream,
+      final DirectBuffer streamType,
+      final M metadata,
+      final ClientStreamConsumer clientStreamConsumer,
+      final int capacity) {
+    this.streamId = streamId;
+    this.serverStream = serverStream;
+    this.streamType = streamType;
+    this.metadata = metadata;
+    this.clientStreamConsumer = clientStreamConsumer;
+    this.capacity = capacity;
+  }
 
   ActorFuture<Void> push(final DirectBuffer payload) {
     try {
@@ -34,7 +51,84 @@ record ClientStreamImpl<M extends BufferWriter>(
   }
 
   @Override
+  public ClientStreamIdImpl streamId() {
+    return streamId;
+  }
+
+  @Override
+  public DirectBuffer streamType() {
+    return streamType;
+  }
+
+  @Override
+  public M metadata() {
+    return metadata;
+  }
+
+  @Override
   public Set<MemberId> liveConnections() {
     return serverStream().liveConnections();
+  }
+
+  public AggregatedClientStream<M> serverStream() {
+    return serverStream;
+  }
+
+  public ClientStreamConsumer clientStreamConsumer() {
+    return clientStreamConsumer;
+  }
+
+  public int capacity() {
+    return capacity;
+  }
+
+  public void capacity(final int capacity) {
+    this.capacity = capacity;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(streamId, serverStream, streamType, metadata, clientStreamConsumer);
+  }
+
+  @Override
+  public boolean equals(final Object obj) {
+    if (obj == this) {
+      return true;
+    }
+    if (obj == null || obj.getClass() != getClass()) {
+      return false;
+    }
+
+    //noinspection ConstantValue
+    if (!(obj instanceof final ClientStreamImpl that)) {
+      return false;
+    }
+
+    return Objects.equals(streamId, that.streamId)
+        && Objects.equals(serverStream, that.serverStream)
+        && Objects.equals(streamType, that.streamType)
+        && Objects.equals(metadata, that.metadata)
+        && Objects.equals(clientStreamConsumer, that.clientStreamConsumer);
+  }
+
+  @Override
+  public String toString() {
+    return "ClientStreamImpl["
+        + "streamId="
+        + streamId
+        + ", "
+        + "serverStream="
+        + serverStream
+        + ", "
+        + "streamType="
+        + streamType
+        + ", "
+        + "metadata="
+        + metadata
+        + ", "
+        + "clientStreamConsumer="
+        + clientStreamConsumer
+        + ']';
   }
 }

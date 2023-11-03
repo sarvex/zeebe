@@ -47,7 +47,8 @@ final class ClientStreamRegistry<M extends BufferWriter> {
   ClientStreamImpl<M> addClient(
       final DirectBuffer streamType,
       final M metadata,
-      final ClientStreamConsumer clientStreamConsumer) {
+      final ClientStreamConsumer clientStreamConsumer,
+      final int capacity) {
     final var streamTypeBuffer = new UnsafeBuffer(streamType);
     final LogicalId<M> logicalId = new LogicalId<>(streamTypeBuffer, metadata);
     // Find serverStreamId given streamType and metadata. Once a server stream is removed, a new
@@ -59,7 +60,7 @@ final class ClientStreamRegistry<M extends BufferWriter> {
     final var streamId = new ClientStreamIdImpl(serverStreamId, serverStream.nextLocalId());
     final var clientStream =
         new ClientStreamImpl<>(
-            streamId, serverStream, streamTypeBuffer, metadata, clientStreamConsumer);
+            streamId, serverStream, streamTypeBuffer, metadata, clientStreamConsumer, capacity);
     serverStream.addClient(clientStream);
     clientStreams.put(streamId, clientStream);
 

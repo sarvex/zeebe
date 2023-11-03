@@ -36,15 +36,25 @@ public interface ClientStreamer<M extends BufferWriter> extends CloseableSilentl
   ActorFuture<ClientStreamId> add(
       final DirectBuffer streamType,
       final M metadata,
-      final ClientStreamConsumer clientStreamConsumer);
+      final ClientStreamConsumer clientStreamConsumer,
+      final int capacity);
+
+  default ActorFuture<ClientStreamId> add(
+      final DirectBuffer streamType,
+      final M metadata,
+      final ClientStreamConsumer clientStreamConsumer) {
+    return add(streamType, metadata, clientStreamConsumer, Integer.MAX_VALUE);
+  }
 
   /**
    * Removes a stream that is added via {@link ClientStreamer#add(DirectBuffer, BufferWriter,
-   * ClientStreamConsumer)}. After the returned future is completed, the {@link
+   * ClientStreamConsumer, int)}. After the returned future is completed, the {@link
    * ClientStreamConsumer} will not receive any more data.
    *
    * @param streamId unique id of the stream
    * @return a future which will be completed after the stream is removed
    */
   ActorFuture<Void> remove(final ClientStreamId streamId);
+
+  default void setCapacity(final ClientStreamId streamId, final int capacity) {}
 }

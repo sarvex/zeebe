@@ -104,13 +104,20 @@ public final class ClientStreamServiceImpl<M extends BufferWriter> extends Actor
   public ActorFuture<ClientStreamId> add(
       final DirectBuffer streamType,
       final M metadata,
-      final ClientStreamConsumer clientStreamConsumer) {
-    return actor.call(() -> clientStreamManager.add(streamType, metadata, clientStreamConsumer));
+      final ClientStreamConsumer clientStreamConsumer,
+      final int capacity) {
+    return actor.call(
+        () -> clientStreamManager.add(streamType, metadata, clientStreamConsumer, capacity));
   }
 
   @Override
   public ActorFuture<Void> remove(final ClientStreamId streamId) {
     return actor.call(() -> clientStreamManager.remove(streamId));
+  }
+
+  @Override
+  public void setCapacity(final ClientStreamId streamId, final int capacity) {
+    actor.run(() -> clientStreamManager.setCapacity(streamId, capacity));
   }
 
   @Override

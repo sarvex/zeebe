@@ -61,6 +61,7 @@ public final class JobWorkerImpl implements JobWorker, Closeable {
   private final int activationThreshold;
   private final AtomicInteger remainingJobs;
   private final AtomicInteger capacity;
+  private final AtomicInteger serverCapacity;
 
   // job execution facilities
   private final ScheduledExecutorService executor;
@@ -90,6 +91,7 @@ public final class JobWorkerImpl implements JobWorker, Closeable {
     activationThreshold = Math.round(maxJobsActive * 0.3f);
     remainingJobs = new AtomicInteger(0);
     capacity = new AtomicInteger(maxJobsActive);
+    serverCapacity = new AtomicInteger(maxJobsActive);
 
     this.executor = executor;
     this.jobHandlerFactory = jobHandlerFactory;
@@ -244,6 +246,9 @@ public final class JobWorkerImpl implements JobWorker, Closeable {
   private void handleStreamedJob(final ActivatedJob job) {
     metrics.jobActivated(1);
     capacity.decrementAndGet();
+    serverCapacity.decrementAndGet();
+    remainingJobs.incrementAndGet();
+
     executor.execute(jobHandlerFactory.create(job, this::handleStreamJobFinished));
   }
 
@@ -258,7 +263,10 @@ public final class JobWorkerImpl implements JobWorker, Closeable {
 
   private void handleStreamJobFinished() {
     final int actualCapacity = capacity.incrementAndGet();
-    if (actualCapacity > activationThreshold) {
+    remainingJobs.decrementAndGet();
+
+    if (serverCapacity.get() < activationThreshold) {
+      serverCapacity.set(actualCapacity);
       jobStreamer.request();
     }
 

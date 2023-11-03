@@ -41,7 +41,6 @@ public final class StreamJobsObserver
 
   private ClientStreamId streamId;
   private boolean isClosed;
-  private long amount;
 
   public StreamJobsObserver(
       final ConcurrencyControl executor,
@@ -72,10 +71,6 @@ public final class StreamJobsObserver
     try {
       return executor.call(
           () -> {
-            if (amount <= 0) {
-              throw new IllegalStateException("No capacity left on stream");
-            }
-
             handlePushedJob(payload);
             return null;
           });
@@ -93,7 +88,6 @@ public final class StreamJobsObserver
     final var activatedJob = ResponseMapper.toActivatedJob(deserializedJob);
     try {
       clientStream.onNext(activatedJob);
-      amount--;
     } catch (final Exception e) {
       clientStream.onError(e);
       throw e;
@@ -125,15 +119,14 @@ public final class StreamJobsObserver
       return;
     }
 
-    LOGGER.info("Received control message: {}", request.getAmount());
-    amount = request.getAmount();
+    jobStreamer.setCapacity(streamId, (int) request.getAmount());
   }
 
-  private void initializeStreamOnFirstRequest(final StreamActivatedJobsRequest value) {
-    final var jobType = value.getType();
+  private void initializeStreamOnFirstRequest(final StreamActivatedJobsRequest request) {
+    final var jobType = request.getType();
     final JobActivationProperties properties;
     try {
-      properties = RequestMapper.toJobActivationProperties(value);
+      properties = RequestMapper.toJobActivationProperties(request);
     } catch (final Exception e) {
       clientStream.onError(
           Status.INVALID_ARGUMENT
@@ -156,9 +149,9 @@ public final class StreamJobsObserver
       return;
     }
 
-    amount = value.getAmount();
     executor.runOnCompletion(
-        jobStreamer.add(wrapString(jobType), properties, this), this::onStreamAdded);
+        jobStreamer.add(wrapString(jobType), properties, this, (int) request.getAmount()),
+        this::onStreamAdded);
   }
 
   private void onStreamAdded(final ClientStreamId streamId, final Throwable error) {

@@ -60,8 +60,17 @@ final class ClientStreamManager<M extends BufferWriter> {
       final DirectBuffer streamType,
       final M metadata,
       final ClientStreamConsumer clientStreamConsumer) {
+    return add(streamType, metadata, clientStreamConsumer, Integer.MAX_VALUE);
+  }
+
+  ClientStreamId add(
+      final DirectBuffer streamType,
+      final M metadata,
+      final ClientStreamConsumer clientStreamConsumer,
+      final int capacity) {
     // add first in memory to handle case of new broker while we're adding
-    final var clientStream = registry.addClient(streamType, metadata, clientStreamConsumer);
+    final var clientStream =
+        registry.addClient(streamType, metadata, clientStreamConsumer, capacity);
     LOG.debug("Added new client stream [{}]", clientStream.streamId());
     clientStream.serverStream().open(requestManager, servers);
 
@@ -118,5 +127,9 @@ final class ClientStreamManager<M extends BufferWriter> {
                   "Cannot forward pushed payload as chosen client stream %s was already closed"
                       .formatted(streamId)));
         });
+  }
+
+  public void setCapacity(final ClientStreamId streamId, final int capacity) {
+    registry.getClient(streamId).ifPresent(s -> s.capacity(capacity));
   }
 }
