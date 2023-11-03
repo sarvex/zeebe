@@ -22,6 +22,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public final class MicrometerJobWorkerMetricsBuilderImpl
     implements MicrometerJobWorkerMetricsBuilder {
@@ -42,8 +43,10 @@ public final class MicrometerJobWorkerMetricsBuilderImpl
 
   @Override
   public JobWorkerMetrics build() {
+    final AtomicInteger capacityTracker = new AtomicInteger();
     final Counter jobActivatedCounter = meterRegistry.counter(Names.JOB_ACTIVATED.asString(), tags);
     final Counter jobHandledCounter = meterRegistry.counter(Names.JOB_HANDLED.asString(), tags);
-    return new MicrometerJobWorkerMetrics(jobActivatedCounter, jobHandledCounter);
+    meterRegistry.gauge(Names.CAPACITY.asString(), tags, capacityTracker);
+    return new MicrometerJobWorkerMetrics(jobActivatedCounter, jobHandledCounter, capacityTracker);
   }
 }

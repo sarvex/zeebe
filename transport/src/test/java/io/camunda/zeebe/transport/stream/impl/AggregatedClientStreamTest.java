@@ -94,7 +94,8 @@ class AggregatedClientStreamTest {
     // given
     final var streamId = getNextStreamId();
     stream.addClient(
-        new ClientStreamImpl<>(streamId, stream, streamType, metadata, CLIENT_STREAM_CONSUMER, 10));
+        new ClientStreamImpl<>(
+            streamId, stream, streamType, metadata, CLIENT_STREAM_CONSUMER, 10, metrics));
 
     // when
     stream.removeClient(streamId);
@@ -119,6 +120,7 @@ class AggregatedClientStreamTest {
   }
 
   private void addClient(final ClientStreamIdImpl streamId, final ClientStreamConsumer consumer) {
-    stream.addClient(new ClientStreamImpl<>(streamId, stream, streamType, metadata, consumer, 10));
+    stream.addClient(
+        new ClientStreamImpl<>(streamId, stream, streamType, metadata, consumer, 10, metrics));
   }
 }

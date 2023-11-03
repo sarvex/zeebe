@@ -78,6 +78,14 @@ public interface MicrometerJobWorkerMetricsBuilder {
       public String asString() {
         return "zeebe.client.worker.job.handled";
       }
+    },
+
+    /** Counter backing the {@link JobWorkerMetrics#capacity(int)} count. */
+    CAPACITY {
+      @Override
+      public String asString() {
+        return "zeebe.client.worker.job.capacity";
+      }
     }
   }
 }

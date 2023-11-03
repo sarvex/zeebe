@@ -39,6 +39,8 @@ public interface JobWorkerMetrics {
    */
   default void jobHandled(final int count) {}
 
+  default void capacity(final int count) {}
+
   /**
    * Returns a new builder for the Micrometer bridge.
    *

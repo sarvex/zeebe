@@ -33,4 +33,6 @@ public interface ClientStreamMetrics {
   static ClientStreamMetrics noop() {
     return new ClientStreamMetrics() {};
   }
+
+  default void clientCapacity(final int capacity) {}
 }

@@ -21,7 +21,7 @@ import java.util.function.Consumer;
 import net.jcip.annotations.ThreadSafe;
 
 @ThreadSafe
-interface JobStreamer extends AutoCloseable {
+public interface JobStreamer extends AutoCloseable {
 
   @Override
   void close();
@@ -30,7 +30,7 @@ interface JobStreamer extends AutoCloseable {
 
   void openStreamer(final Consumer<ActivatedJob> jobConsumer, final AtomicInteger capacity);
 
-  void request();
+  void request(final int capacity);
 
   static JobStreamer noop() {
     return NoopJobStream.INSTANCE;
@@ -53,6 +53,6 @@ interface JobStreamer extends AutoCloseable {
         final Consumer<ActivatedJob> jobConsumer, final AtomicInteger capacity) {}
 
     @Override
-    public void request() {}
+    public void request(final int capacity) {}
   }
 }

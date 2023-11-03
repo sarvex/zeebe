@@ -12,18 +12,24 @@ import io.camunda.zeebe.scheduler.future.ActorFuture;
 import io.camunda.zeebe.scheduler.future.CompletableActorFuture;
 import io.camunda.zeebe.transport.stream.api.ClientStream;
 import io.camunda.zeebe.transport.stream.api.ClientStreamConsumer;
+import io.camunda.zeebe.transport.stream.api.ClientStreamMetrics;
 import io.camunda.zeebe.util.buffer.BufferWriter;
 import java.util.Objects;
 import java.util.Set;
 import org.agrona.DirectBuffer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Represents a registered client stream. * */
 final class ClientStreamImpl<M extends BufferWriter> implements ClientStream<M> {
+  private static final Logger LOG = LoggerFactory.getLogger(ClientStreamImpl.class);
+
   private final ClientStreamIdImpl streamId;
   private final AggregatedClientStream<M> serverStream;
   private final DirectBuffer streamType;
   private final M metadata;
   private final ClientStreamConsumer clientStreamConsumer;
+  private final ClientStreamMetrics metrics;
 
   private int capacity;
 
@@ -33,13 +39,15 @@ final class ClientStreamImpl<M extends BufferWriter> implements ClientStream<M> 
       final DirectBuffer streamType,
       final M metadata,
       final ClientStreamConsumer clientStreamConsumer,
-      final int capacity) {
+      final int capacity,
+      final ClientStreamMetrics metrics) {
     this.streamId = streamId;
     this.serverStream = serverStream;
     this.streamType = streamType;
     this.metadata = metadata;
     this.clientStreamConsumer = clientStreamConsumer;
     this.capacity = capacity;
+    this.metrics = metrics;
   }
 
   ActorFuture<Void> push(final DirectBuffer payload) {
@@ -83,10 +91,16 @@ final class ClientStreamImpl<M extends BufferWriter> implements ClientStream<M> 
   }
 
   public void decrementCapacity() {
-    capacity--;
+    capacity(capacity - 1);
+  }
+
+  public void incrementCapacity() {
+    capacity(capacity + 1);
   }
 
   public void capacity(final int capacity) {
+    metrics.clientCapacity(capacity);
+    LOG.trace("Set capacity to {} for stream {}", capacity, streamId);
     this.capacity = capacity;
   }
 
@@ -104,7 +118,7 @@ final class ClientStreamImpl<M extends BufferWriter> implements ClientStream<M> 
       return false;
     }
 
-    //noinspection ConstantValue
+    //noinspection ConstantValue,rawtypes
     if (!(obj instanceof final ClientStreamImpl that)) {
       return false;
     }

@@ -226,9 +226,7 @@ public final class ZeebeClientImpl implements ZeebeClient {
           }
         });
 
-    executorResource.close();
     channel.shutdownNow();
-
     try {
       if (!channel.awaitTermination(15, TimeUnit.SECONDS)) {
         throw new ClientException(
@@ -238,6 +236,8 @@ public final class ZeebeClientImpl implements ZeebeClient {
       throw new ClientException(
           "Unexpectedly interrupted awaiting termination of in-flight request channel", e);
     }
+
+    executorResource.close();
   }
 
   @Override

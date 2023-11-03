@@ -18,18 +18,23 @@ package io.camunda.zeebe.client.impl.worker.metrics;
 import io.camunda.zeebe.client.api.worker.JobWorkerMetrics;
 import io.micrometer.core.instrument.Counter;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public final class MicrometerJobWorkerMetrics implements JobWorkerMetrics {
 
   private final Counter jobActivatedCounter;
   private final Counter jobHandledCounter;
+  private final AtomicInteger capacity;
 
   public MicrometerJobWorkerMetrics(
-      final Counter jobActivatedCounter, final Counter jobHandledCounter) {
+      final Counter jobActivatedCounter,
+      final Counter jobHandledCounter,
+      final AtomicInteger capacity) {
     this.jobActivatedCounter =
         Objects.requireNonNull(jobActivatedCounter, "must specify a job activated counter");
     this.jobHandledCounter =
         Objects.requireNonNull(jobHandledCounter, "must specify a job handled counter");
+    this.capacity = capacity;
   }
 
   @Override
@@ -40,5 +45,10 @@ public final class MicrometerJobWorkerMetrics implements JobWorkerMetrics {
   @Override
   public void jobHandled(final int count) {
     jobHandledCounter.increment(count);
+  }
+
+  @Override
+  public void capacity(final int count) {
+    capacity.set(count);
   }
 }

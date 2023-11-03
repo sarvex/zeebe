@@ -21,7 +21,6 @@ import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.BackoffSupplier;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.client.impl.Loggers;
-import io.camunda.zeebe.gateway.protocol.GatewayOuterClass.StreamActivatedJobsRequest;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import java.time.Duration;
@@ -39,9 +38,6 @@ import org.slf4j.Logger;
 @ThreadSafe
 final class JobStreamerImpl implements JobStreamer {
   private static final Logger LOGGER = Loggers.JOB_WORKER_LOGGER;
-
-  private final StreamActivatedJobsRequest.Builder amountRequest =
-      StreamActivatedJobsRequest.newBuilder();
 
   private final JobClient jobClient;
   private final String jobType;
@@ -119,7 +115,7 @@ final class JobStreamerImpl implements JobStreamer {
   }
 
   @Override
-  public void request() {
+  public void request(final int capacity) {
     try {
       streamLock.lockInterruptibly();
     } catch (final InterruptedException e) {
@@ -136,7 +132,7 @@ final class JobStreamerImpl implements JobStreamer {
     }
 
     try {
-      lockedRequest();
+      lockedRequest(capacity);
     } finally {
       streamLock.unlock();
     }
@@ -218,11 +214,7 @@ final class JobStreamerImpl implements JobStreamer {
       streamControl.close();
       streamControl = null;
     }
-    streamControl =
-        command.open(
-            error -> {
-              executor.submit(() -> handleStreamComplete(error));
-            });
+    streamControl = command.open(error -> executor.submit(() -> handleStreamComplete(error)));
     LOGGER.debug("Opened job stream of type '{}' for worker '{}'", jobType, workerName);
   }
 
@@ -248,7 +240,7 @@ final class JobStreamerImpl implements JobStreamer {
   }
 
   @GuardedBy("streamLock")
-  private void lockedRequest() {
+  private void lockedRequest(final int capacity) {
     if (isClosed) {
       LOGGER.trace(
           "Skip increasing capacity of job stream of type '{}' for worker '{}'",
@@ -258,7 +250,7 @@ final class JobStreamerImpl implements JobStreamer {
     }
 
     if (streamControl != null) {
-      streamControl.request(capacity.get());
+      streamControl.request(capacity);
     }
   }
 

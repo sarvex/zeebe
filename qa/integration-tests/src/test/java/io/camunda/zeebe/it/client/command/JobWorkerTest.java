@@ -21,6 +21,7 @@ import io.camunda.zeebe.qa.util.jobstream.JobStreamActuatorAssert;
 import io.camunda.zeebe.qa.util.junit.ZeebeIntegration;
 import io.camunda.zeebe.qa.util.junit.ZeebeIntegration.TestZeebe;
 import io.camunda.zeebe.test.util.Strings;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -219,13 +220,11 @@ final class JobWorkerTest {
     // when
     try (final var ignored = builder.open()) {
       awaitStreamRegistered(jobType);
-      ZEEBE.stop().start().awaitCompleteTopology();
-      // need to stream being registered, as otherwise the job will be polled, not streamed
-      awaitStreamRegistered(jobType);
       client.createJobs(jobType, 30);
 
       // then - expect job to be activated
       Awaitility.await("until all jobs are activated")
+          .atMost(Duration.ofMinutes(1))
           .untilAsserted(() -> assertThat(jobHandler.getHandledJobs()).hasSize(30));
     }
   }

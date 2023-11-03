@@ -153,15 +153,17 @@ final class AggregatedClientStream<M extends BufferWriter> {
       tryPush(targets, (index + 1) % targets.size(), currentCount + 1, buffer, future);
       return;
     }
+
     LOGGER.trace("Pushing data from stream [{}] to client [{}]", streamId, clientStream.streamId());
+    clientStream.decrementCapacity();
     clientStream
         .push(buffer)
         .onComplete(
             (ok, pushFailed) -> {
               if (pushFailed == null) {
-                clientStream.decrementCapacity();
                 future.complete(null);
               } else {
+                clientStream.incrementCapacity();
                 if (currentCount >= targets.size()) {
                   final StreamExhaustedException error =
                       new StreamExhaustedException(

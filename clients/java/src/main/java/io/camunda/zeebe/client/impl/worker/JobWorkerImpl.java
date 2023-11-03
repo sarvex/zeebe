@@ -61,7 +61,6 @@ public final class JobWorkerImpl implements JobWorker, Closeable {
   private final int activationThreshold;
   private final AtomicInteger remainingJobs;
   private final AtomicInteger capacity;
-  private final AtomicInteger serverCapacity;
 
   // job execution facilities
   private final ScheduledExecutorService executor;
@@ -91,7 +90,7 @@ public final class JobWorkerImpl implements JobWorker, Closeable {
     activationThreshold = Math.round(maxJobsActive * 0.3f);
     remainingJobs = new AtomicInteger(0);
     capacity = new AtomicInteger(maxJobsActive);
-    serverCapacity = new AtomicInteger(maxJobsActive);
+    metrics.capacity(maxJobsActive);
 
     this.executor = executor;
     this.jobHandlerFactory = jobHandlerFactory;
@@ -239,15 +238,16 @@ public final class JobWorkerImpl implements JobWorker, Closeable {
 
   private void handleJob(final ActivatedJob job) {
     metrics.jobActivated(1);
-    capacity.decrementAndGet();
+    final int actualCapacity = capacity.decrementAndGet();
+    metrics.capacity(actualCapacity);
     executor.execute(jobHandlerFactory.create(job, this::handleJobFinished));
   }
 
   private void handleStreamedJob(final ActivatedJob job) {
     metrics.jobActivated(1);
-    capacity.decrementAndGet();
-    serverCapacity.decrementAndGet();
+    final int actualCapacity = capacity.decrementAndGet();
     remainingJobs.incrementAndGet();
+    metrics.capacity(actualCapacity);
 
     // todo handle rejection exception
     executor.execute(jobHandlerFactory.create(job, this::handleStreamJobFinished));
@@ -264,13 +264,9 @@ public final class JobWorkerImpl implements JobWorker, Closeable {
 
   private void handleStreamJobFinished() {
     final int actualCapacity = capacity.incrementAndGet();
+    metrics.capacity(actualCapacity);
     remainingJobs.decrementAndGet();
-
-    if (serverCapacity.get() <= activationThreshold) {
-      serverCapacity.set(actualCapacity);
-      jobStreamer.request();
-    }
-
+    jobStreamer.request(actualCapacity);
     metrics.jobHandled(1);
   }
 }

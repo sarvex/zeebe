@@ -47,6 +47,13 @@ final class JobClientStreamMetrics implements ClientStreamMetrics {
           .labelNames("status")
           .register();
 
+  private static final Gauge CAPACITY =
+      Gauge.build()
+          .name(NAMESPACE)
+          .name("capacity")
+          .help("Capacity for all job clients whatever")
+          .register();
+
   private final Counter.Child pushSuccessCount;
   private final Counter.Child pushFailureCount;
 
@@ -83,5 +90,10 @@ final class JobClientStreamMetrics implements ClientStreamMetrics {
   @Override
   public void pushFailed() {
     pushFailureCount.inc();
+  }
+
+  @Override
+  public void clientCapacity(final int capacity) {
+    CAPACITY.set(capacity);
   }
 }

@@ -147,7 +147,7 @@ final class JobWorkerMetricsTest {
     }
 
     @Override
-    public void request() {}
+    public void request(final int capacity) {}
 
     private void streamJob() {
       final ActivatedJobImpl job = new ActivatedJobImpl(mapper, TestData.job());

@@ -60,7 +60,13 @@ final class ClientStreamRegistry<M extends BufferWriter> {
     final var streamId = new ClientStreamIdImpl(serverStreamId, serverStream.nextLocalId());
     final var clientStream =
         new ClientStreamImpl<>(
-            streamId, serverStream, streamTypeBuffer, metadata, clientStreamConsumer, capacity);
+            streamId,
+            serverStream,
+            streamTypeBuffer,
+            metadata,
+            clientStreamConsumer,
+            capacity,
+            metrics);
     serverStream.addClient(clientStream);
     clientStreams.put(streamId, clientStream);
 

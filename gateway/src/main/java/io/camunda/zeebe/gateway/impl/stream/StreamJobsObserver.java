@@ -109,6 +109,7 @@ public final class StreamJobsObserver
     isClosed = true;
 
     if (streamId != null) {
+      LOGGER.warn("Stream completed client side, removing...");
       jobStreamer.remove(streamId);
     }
   }
@@ -169,6 +170,7 @@ public final class StreamJobsObserver
     }
 
     if (isClosed) {
+      LOGGER.warn("Stream is already closed, removing...");
       jobStreamer.remove(streamId);
       return;
     }
