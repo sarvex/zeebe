@@ -139,7 +139,7 @@ final class AggregatedClientStream<M extends BufferWriter> {
       final int currentCount,
       final DirectBuffer buffer,
       final ActorFuture<Void> future) {
-    if (currentCount >= targets.size()) {
+    if (currentCount > targets.size()) {
       final StreamExhaustedException error =
           new StreamExhaustedException(
               "Failed to push data to all available clients. No more clients left to retry.");
@@ -149,7 +149,7 @@ final class AggregatedClientStream<M extends BufferWriter> {
 
     // Try with clients in a round-robin starting from the randomly picked startIndex
     final var clientStream = targets.get(index);
-    if (clientStream.capacity() > 0) {
+    if (clientStream.capacity() <= 0) {
       tryPush(targets, (index + 1) % targets.size(), currentCount + 1, buffer, future);
       return;
     }

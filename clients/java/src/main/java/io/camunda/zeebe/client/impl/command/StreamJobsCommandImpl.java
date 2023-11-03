@@ -158,7 +158,7 @@ public final class StreamJobsCommandImpl
       stub = stub.withDeadlineAfter(requestTimeout.toNanos(), TimeUnit.NANOSECONDS);
     }
 
-    streamController.sender = stub.streamActivatedJobs(jobStreamObserver);
+    streamController.sender = stub.withWaitForReady().streamActivatedJobs(jobStreamObserver);
     streamController.sender.onNext(builder.setAmount(amount).build());
 
     return streamController;
