@@ -249,6 +249,7 @@ public final class JobWorkerImpl implements JobWorker, Closeable {
     serverCapacity.decrementAndGet();
     remainingJobs.incrementAndGet();
 
+    // todo handle rejection exception
     executor.execute(jobHandlerFactory.create(job, this::handleStreamJobFinished));
   }
 
