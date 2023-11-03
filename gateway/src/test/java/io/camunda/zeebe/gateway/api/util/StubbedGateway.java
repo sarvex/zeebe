@@ -167,7 +167,8 @@ public final class StubbedGateway {
     public ActorFuture<ClientStreamId> add(
         final DirectBuffer streamType,
         final JobActivationProperties metadata,
-        final ClientStreamConsumer clientStreamConsumer) {
+        final ClientStreamConsumer clientStreamConsumer,
+        final int capacity) {
       final var failure = failOnAdd.get();
       if (failure != null) {
         return CompletableActorFuture.completedExceptionally(failure);

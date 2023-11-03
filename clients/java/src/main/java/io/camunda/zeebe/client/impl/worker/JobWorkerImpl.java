@@ -265,7 +265,7 @@ public final class JobWorkerImpl implements JobWorker, Closeable {
     final int actualCapacity = capacity.incrementAndGet();
     remainingJobs.decrementAndGet();
 
-    if (serverCapacity.get() < activationThreshold) {
+    if (serverCapacity.get() <= activationThreshold) {
       serverCapacity.set(actualCapacity);
       jobStreamer.request();
     }
