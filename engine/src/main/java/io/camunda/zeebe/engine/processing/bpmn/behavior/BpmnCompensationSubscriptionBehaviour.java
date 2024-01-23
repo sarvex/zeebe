@@ -30,6 +30,7 @@ import io.camunda.zeebe.protocol.record.value.BpmnElementType;
 import io.camunda.zeebe.protocol.record.value.BpmnEventType;
 import io.camunda.zeebe.stream.api.state.KeyGenerator;
 import io.camunda.zeebe.util.buffer.BufferUtil;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -75,28 +76,65 @@ public class BpmnCompensationSubscriptionBehaviour {
 
   public boolean triggerCompensation(
       final ExecutableFlowNode element, final BpmnElementContext context) {
-    final Set<CompensationSubscription> completedCompensationSubscription =
-        getCompensationSubscriptionForCompletedActivities(context);
 
-    if (completedCompensationSubscription.isEmpty()) {
+    final Set<CompensationSubscription> subscriptions =
+        compensationSubscriptionState.findSubscriptionsByProcessInstanceKey(
+            context.getTenantId(), context.getProcessInstanceKey());
+
+    if (subscriptions.isEmpty()) {
       return false;
     }
 
-    // trigger compensation on process level
-    triggerCompensationForScopeId(
-        context, BufferUtil.bufferAsString(element.getFlowScope().getId()));
-
-    final var completedSubprocessScopeId =
-        getCompletedSubprocessScopeId(context.getTenantId(), context.getProcessInstanceKey());
     final var availableScopeId = getAvailableSubprocessScopeId(element);
 
-    availableScopeId.forEach(
-        scopeId -> {
-          if (completedSubprocessScopeId.contains(scopeId)) {
-            triggerCompensationForScopeId(context, scopeId);
-          }
-        });
+    final List<CompensationSubscription> subscriptionsOfCompensationHandlers =
+        subscriptions.stream()
+            .filter(
+                subscription ->
+                    !availableScopeId.contains(subscription.getRecord().getCompensableActivityId()))
+            .toList();
+
+    triggerCompensationForScope(
+        context,
+        subscriptionsOfCompensationHandlers,
+        BufferUtil.bufferAsString(element.getFlowScope().getId()));
+
+    subscriptions.stream()
+        .filter(
+            subscription ->
+                availableScopeId.contains(subscription.getRecord().getCompensableActivityId()))
+        .forEach(
+            subprocessSubscription -> {
+              final String subprocessId =
+                  subprocessSubscription.getRecord().getCompensableActivityId();
+
+              triggerCompensationForScope(
+                  context, subscriptionsOfCompensationHandlers, subprocessId);
+            });
+
     return true;
+  }
+
+  private void triggerCompensationForScope(
+      final BpmnElementContext context,
+      final List<CompensationSubscription> subscriptions,
+      final String subprocessId) {
+    subscriptions.stream()
+        .filter(
+            subscription ->
+                subscription.getRecord().getCompensableActivityScopeId().equals(subprocessId))
+        .forEach(
+            subscription -> {
+              final var key = subscription.getKey();
+              final var compensationRecord = subscription.getRecord();
+              compensationRecord
+                  .setThrowEventId(BufferUtil.bufferAsString(context.getElementId()))
+                  .setThrowEventInstanceKey(context.getElementInstanceKey());
+              stateWriter.appendFollowUpEvent(
+                  key, CompensationSubscriptionIntent.TRIGGERED, compensationRecord);
+
+              activateCompensationHandler(compensationRecord.getCompensableActivityId(), context);
+            });
   }
 
   public void completeCompensationHandler(
@@ -148,7 +186,9 @@ public class BpmnCompensationSubscriptionBehaviour {
               .setTenantId(context.getTenantId())
               .setProcessInstanceKey(context.getProcessInstanceKey())
               .setProcessDefinitionKey(context.getProcessDefinitionKey())
-              .setCompensableActivityScopeId(BufferUtil.bufferAsString(element.getId()))
+              .setCompensableActivityId(BufferUtil.bufferAsString(element.getId()))
+              .setCompensableActivityScopeId(
+                  BufferUtil.bufferAsString(element.getFlowScope().getId()))
               .setSubprocessSubscription(true);
       stateWriter.appendFollowUpEvent(key, CompensationSubscriptionIntent.CREATED, compensation);
     }
@@ -164,12 +204,6 @@ public class BpmnCompensationSubscriptionBehaviour {
                 compensation.getKey(),
                 CompensationSubscriptionIntent.DELETED,
                 compensation.getRecord()));
-  }
-
-  private Set<CompensationSubscription> getCompensationSubscriptionForCompletedActivities(
-      final BpmnElementContext context) {
-    return compensationSubscriptionState.findSubscriptionsByProcessInstanceKey(
-        context.getTenantId(), context.getProcessInstanceKey());
   }
 
   private boolean hasCompensationBoundaryEvent(final ExecutableActivity element) {
@@ -267,41 +301,6 @@ public class BpmnCompensationSubscriptionBehaviour {
             context.getProcessInstanceKey(),
             BufferUtil.bufferAsString(element.getId()))
         .isEmpty();
-  }
-
-  private void triggerCompensationForScopeId(
-      final BpmnElementContext context, final String scopeId) {
-    final Set<CompensationSubscription> subscriptions =
-        compensationSubscriptionState.findSubscriptionsByCompensableActivityScopeId(
-            context.getTenantId(), context.getProcessInstanceKey(), scopeId);
-
-    if (subscriptions.isEmpty()) {
-      return;
-    }
-    // activate the compensation handler
-    subscriptions.forEach(
-        compensation -> {
-          final var key = compensation.getKey();
-          final var compensationRecord = compensation.getRecord();
-          compensationRecord
-              .setThrowEventId(BufferUtil.bufferAsString(context.getElementId()))
-              .setThrowEventInstanceKey(context.getElementInstanceKey());
-          stateWriter.appendFollowUpEvent(
-              key, CompensationSubscriptionIntent.TRIGGERED, compensationRecord);
-
-          activateCompensationHandler(compensationRecord.getCompensableActivityId(), context);
-        });
-  }
-
-  private Set<String> getCompletedSubprocessScopeId(
-      final String tenantId, final long processInstanceKey) {
-    return compensationSubscriptionState
-        .findSubprocessSubscriptions(tenantId, processInstanceKey)
-        .stream()
-        .map(
-            compensationSubscription ->
-                compensationSubscription.getRecord().getCompensableActivityScopeId())
-        .collect(Collectors.toSet());
   }
 
   private Set<String> getAvailableSubprocessScopeId(final ExecutableFlowNode element) {

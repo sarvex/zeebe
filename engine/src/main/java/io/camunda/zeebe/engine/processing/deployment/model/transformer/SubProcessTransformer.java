@@ -8,6 +8,7 @@
 package io.camunda.zeebe.engine.processing.deployment.model.transformer;
 
 import io.camunda.zeebe.engine.processing.deployment.model.element.ExecutableFlowElementContainer;
+import io.camunda.zeebe.engine.processing.deployment.model.element.ExecutableFlowNode;
 import io.camunda.zeebe.engine.processing.deployment.model.element.ExecutableProcess;
 import io.camunda.zeebe.engine.processing.deployment.model.element.ExecutableStartEvent;
 import io.camunda.zeebe.engine.processing.deployment.model.transformation.ModelElementTransformer;
@@ -32,6 +33,15 @@ public final class SubProcessTransformer implements ModelElementTransformer<SubP
     if (element.triggeredByEvent()) {
       transformEventSubprocess(element, currentProcess, subprocess);
     }
+
+    element
+        .getFlowElements()
+        .forEach(
+            flowElement -> {
+              final ExecutableFlowNode child =
+                  currentProcess.getElementById(flowElement.getId(), ExecutableFlowNode.class);
+              // add child element to subprocess
+            });
   }
 
   private void transformEventSubprocess(
