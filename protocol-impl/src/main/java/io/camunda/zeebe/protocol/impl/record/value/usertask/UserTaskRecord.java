@@ -51,6 +51,8 @@ public final class UserTaskRecord extends UnifiedRecordValue implements UserTask
   private final StringProperty dueDateProp = new StringProperty(DUE_DATE, EMPTY_STRING);
   private final StringProperty followUpDateProp = new StringProperty(FOLLOW_UP_DATE, EMPTY_STRING);
   private final LongProperty formKeyProp = new LongProperty("formKey", -1);
+  private final StringProperty externalReferenceProp =
+      new StringProperty("externalReference", EMPTY_STRING);
 
   private final DocumentProperty variableProp = new DocumentProperty("variables");
 
@@ -70,7 +72,7 @@ public final class UserTaskRecord extends UnifiedRecordValue implements UserTask
       new ArrayProperty<>("changedAttributes", StringValue::new);
 
   public UserTaskRecord() {
-    super(16);
+    super(17);
     declareProperty(userTaskKeyProp)
         .declareProperty(assigneeProp)
         .declareProperty(candidateGroupsProp)
@@ -78,6 +80,7 @@ public final class UserTaskRecord extends UnifiedRecordValue implements UserTask
         .declareProperty(dueDateProp)
         .declareProperty(followUpDateProp)
         .declareProperty(formKeyProp)
+        .declareProperty(externalReferenceProp)
         .declareProperty(variableProp)
         .declareProperty(bpmnProcessIdProp)
         .declareProperty(processDefinitionVersionProp)
@@ -97,6 +100,7 @@ public final class UserTaskRecord extends UnifiedRecordValue implements UserTask
     dueDateProp.setValue(record.getDueDateBuffer());
     followUpDateProp.setValue(record.getFollowUpDateBuffer());
     formKeyProp.setValue(record.getFormKey());
+    externalReferenceProp.setValue(record.getExternalReferenceBuffer());
     bpmnProcessIdProp.setValue(record.getBpmnProcessIdBuffer());
     processDefinitionVersionProp.setValue(record.getProcessDefinitionVersion());
     processDefinitionKeyProp.setValue(record.getProcessDefinitionKey());
@@ -179,6 +183,11 @@ public final class UserTaskRecord extends UnifiedRecordValue implements UserTask
   }
 
   @Override
+  public String getExternalReference() {
+    return bufferAsString(externalReferenceProp.getValue());
+  }
+
+  @Override
   public String getElementId() {
     return bufferAsString(elementIdProp.getValue());
   }
@@ -235,6 +244,16 @@ public final class UserTaskRecord extends UnifiedRecordValue implements UserTask
 
   public UserTaskRecord setElementId(final DirectBuffer elementId) {
     elementIdProp.setValue(elementId);
+    return this;
+  }
+
+  public UserTaskRecord setExternalReference(final String externalReference) {
+    externalReferenceProp.setValue(externalReference);
+    return this;
+  }
+
+  public UserTaskRecord setExternalReference(final DirectBuffer externalReference) {
+    externalReferenceProp.setValue(externalReference);
     return this;
   }
 
@@ -380,6 +399,11 @@ public final class UserTaskRecord extends UnifiedRecordValue implements UserTask
   @JsonIgnore
   public DirectBuffer getFollowUpDateBuffer() {
     return followUpDateProp.getValue();
+  }
+
+  @JsonIgnore
+  public DirectBuffer getExternalReferenceBuffer() {
+    return externalReferenceProp.getValue();
   }
 
   @JsonIgnore

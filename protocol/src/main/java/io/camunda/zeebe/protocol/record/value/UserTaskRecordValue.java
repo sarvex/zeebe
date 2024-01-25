@@ -47,6 +47,8 @@ public interface UserTaskRecordValue
 
   List<String> getChangedAttributes();
 
+  String getExternalReference();
+
   /**
    * @return the element id of the corresponding user task
    */
