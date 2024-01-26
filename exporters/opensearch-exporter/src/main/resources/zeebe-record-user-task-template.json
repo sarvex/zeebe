@@ -43,6 +43,9 @@
             "formKey": {
               "type": "long"
             },
+            "externalReference": {
+              "type": "keyword"
+            },
             "elementId": {
               "type": "text"
             },
