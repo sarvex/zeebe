@@ -14,7 +14,6 @@ import io.camunda.zeebe.engine.processing.bpmn.BpmnElementContext;
 import io.camunda.zeebe.engine.processing.common.ExpressionProcessor;
 import io.camunda.zeebe.engine.processing.common.Failure;
 import io.camunda.zeebe.engine.processing.deployment.model.element.ExecutableUserTask;
-import io.camunda.zeebe.engine.processing.deployment.model.transformer.ExpressionTransformer;
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.StateWriter;
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.Writers;
 import io.camunda.zeebe.engine.state.deployment.PersistedForm;
@@ -29,7 +28,9 @@ import io.camunda.zeebe.protocol.record.value.ErrorType;
 import io.camunda.zeebe.stream.api.state.KeyGenerator;
 import io.camunda.zeebe.util.Either;
 import java.time.ZonedDateTime;
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -113,24 +114,20 @@ public final class BpmnUserTaskBehavior {
     return expressionBehavior.evaluateStringExpression(assignee, scopeKey);
   }
 
-  public Either<Failure, String> evaluateCandidateGroupsExpression(
+  public Either<Failure, List<String>> evaluateCandidateGroupsExpression(
       final Expression candidateGroups, final long scopeKey) {
     if (candidateGroups == null) {
       return Either.right(null);
     }
-    return expressionBehavior
-        .evaluateArrayOfStringsExpression(candidateGroups, scopeKey)
-        .map(ExpressionTransformer::asListLiteral);
+    return expressionBehavior.evaluateArrayOfStringsExpression(candidateGroups, scopeKey);
   }
 
-  public Either<Failure, String> evaluateCandidateUsersExpression(
+  public Either<Failure, List<String>> evaluateCandidateUsersExpression(
       final Expression candidateUsers, final long scopeKey) {
     if (candidateUsers == null) {
       return Either.right(null);
     }
-    return expressionBehavior
-        .evaluateArrayOfStringsExpression(candidateUsers, scopeKey)
-        .map(ExpressionTransformer::asListLiteral);
+    return expressionBehavior.evaluateArrayOfStringsExpression(candidateUsers, scopeKey);
   }
 
   public Either<Failure, String> evaluateDateExpression(
@@ -218,8 +215,8 @@ public final class BpmnUserTaskBehavior {
   public static final class UserTaskProperties {
 
     private String assignee;
-    private String candidateGroups;
-    private String candidateUsers;
+    private List<String> candidateGroups;
+    private List<String> candidateUsers;
     private String dueDate;
     private String followUpDate;
     private Long formKey;
@@ -233,20 +230,20 @@ public final class BpmnUserTaskBehavior {
       return this;
     }
 
-    public String getCandidateGroups() {
+    public List<String> getCandidateGroups() {
       return getOrEmpty(candidateGroups);
     }
 
-    public UserTaskProperties candidateGroups(final String candidateGroups) {
+    public UserTaskProperties candidateGroups(final List<String> candidateGroups) {
       this.candidateGroups = candidateGroups;
       return this;
     }
 
-    public String getCandidateUsers() {
+    public List<String> getCandidateUsers() {
       return getOrEmpty(candidateUsers);
     }
 
-    public UserTaskProperties candidateUsers(final String candidateUsers) {
+    public UserTaskProperties candidateUsers(final List<String> candidateUsers) {
       this.candidateUsers = candidateUsers;
       return this;
     }
@@ -280,6 +277,10 @@ public final class BpmnUserTaskBehavior {
 
     private static String getOrEmpty(final String stringValue) {
       return stringValue == null ? "" : stringValue;
+    }
+
+    private static List<String> getOrEmpty(final List<String> stringValue) {
+      return stringValue == null ? Collections.emptyList() : stringValue;
     }
   }
 }

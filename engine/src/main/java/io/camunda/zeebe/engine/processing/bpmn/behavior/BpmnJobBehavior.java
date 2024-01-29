@@ -15,6 +15,7 @@ import io.camunda.zeebe.engine.processing.bpmn.BpmnElementContext;
 import io.camunda.zeebe.engine.processing.common.ExpressionProcessor;
 import io.camunda.zeebe.engine.processing.common.Failure;
 import io.camunda.zeebe.engine.processing.deployment.model.element.ExecutableJobWorkerElement;
+import io.camunda.zeebe.engine.processing.deployment.model.transformer.ExpressionTransformer;
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.StateWriter;
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.Writers;
 import io.camunda.zeebe.engine.state.immutable.JobState;
@@ -100,12 +101,12 @@ public final class BpmnJobBehavior {
                 userTaskBehavior
                     .evaluateCandidateGroupsExpression(
                         jobWorkerProps.getCandidateGroups(), scopeKey)
-                    .map(p::candidateGroups))
+                    .map(list -> p.candidateGroups(ExpressionTransformer.asListLiteral(list))))
         .flatMap(
             p ->
                 userTaskBehavior
                     .evaluateCandidateUsersExpression(jobWorkerProps.getCandidateUsers(), scopeKey)
-                    .map(p::candidateUsers))
+                    .map(list -> p.candidateUsers(ExpressionTransformer.asListLiteral(list))))
         .flatMap(
             p ->
                 userTaskBehavior
