@@ -286,7 +286,7 @@ public final class NativeUserTaskTest {
             .withProcessInstanceKey(processInstanceKey)
             .getFirst();
 
-    Assertions.assertThat(userTask.getValue()).hasCandidateGroups("[\"alice\",\"bob\"]");
+    Assertions.assertThat(userTask.getValue()).hasCandidateGroups("alice", "bob");
   }
 
   @Test
@@ -311,7 +311,7 @@ public final class NativeUserTaskTest {
             .withProcessInstanceKey(processInstanceKey)
             .getFirst();
 
-    Assertions.assertThat(userTask.getValue()).hasCandidateGroups("[\"alice\",\"bob\"]");
+    Assertions.assertThat(userTask.getValue()).hasCandidateGroups("alice", "bob");
   }
 
   @Test
@@ -328,7 +328,7 @@ public final class NativeUserTaskTest {
             .withProcessInstanceKey(processInstanceKey)
             .getFirst();
 
-    Assertions.assertThat(userTask.getValue()).hasCandidateUsers("[\"jack\",\"rose\"]");
+    Assertions.assertThat(userTask.getValue()).hasCandidateUsers("jack", "rose");
   }
 
   @Test
@@ -353,7 +353,7 @@ public final class NativeUserTaskTest {
             .withProcessInstanceKey(processInstanceKey)
             .getFirst();
 
-    Assertions.assertThat(userTask.getValue()).hasCandidateUsers("[\"jack\",\"rose\"]");
+    Assertions.assertThat(userTask.getValue()).hasCandidateUsers("jack", "rose");
   }
 
   @Test

@@ -908,4 +908,12 @@ public class CompactRecordLogger {
       result.append(name).append(" \"").append(value).append("\"");
     }
   }
+
+  // add non-empty String list elements
+  private void addIfNotEmpty(
+      final StringBuilder result, final List<String> value, final String name) {
+    if (value != null && !value.isEmpty()) {
+      result.append(name).append(" \"").append(value).append("\"");
+    }
+  }
 }
