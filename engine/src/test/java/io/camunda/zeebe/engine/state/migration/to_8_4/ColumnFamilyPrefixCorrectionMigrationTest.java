@@ -335,7 +335,7 @@ public class ColumnFamilyPrefixCorrectionMigrationTest {
       migrationTaskState = new MigrationTaskState();
       wrongMigrationStateColumnFamily =
           zeebeDb.createColumnFamily(
-              ZbColumnFamilies.SIGNAL_SUBSCRIPTION_BY_NAME_AND_KEY,
+              ZbColumnFamilies.DEPRECATED_SIGNAL_SUBSCRIPTION_BY_NAME_AND_KEY,
               transactionContext,
               migrationIdentifier,
               migrationTaskState);
@@ -354,7 +354,7 @@ public class ColumnFamilyPrefixCorrectionMigrationTest {
 
       correctSignalSubscriptionColumnFamily =
           zeebeDb.createColumnFamily(
-              ZbColumnFamilies.SIGNAL_SUBSCRIPTION_BY_NAME_AND_KEY,
+              ZbColumnFamilies.DEPRECATED_SIGNAL_SUBSCRIPTION_BY_NAME_AND_KEY,
               transactionContext,
               signalNameAndSubscriptionKey,
               signalSubscription);

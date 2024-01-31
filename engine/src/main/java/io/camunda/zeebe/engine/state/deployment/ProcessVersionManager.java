@@ -34,7 +34,10 @@ public final class ProcessVersionManager {
     processIdKey = new DbString();
     nextValueColumnFamily =
         zeebeDb.createColumnFamily(
-            ZbColumnFamilies.PROCESS_VERSION, transactionContext, processIdKey, nextVersion);
+            ZbColumnFamilies.DEPRECATED_PROCESS_VERSION,
+            transactionContext,
+            processIdKey,
+            nextVersion);
     versionCache = new Object2LongHashMap<>(initialValue);
   }
 

@@ -138,7 +138,7 @@ public final class DbMessageState implements MutableMessageState {
     nameCorrelationMessageKey = new DbCompositeKey<>(nameAndCorrelationKey, fkMessage);
     nameCorrelationMessageColumnFamily =
         zeebeDb.createColumnFamily(
-            ZbColumnFamilies.MESSAGES,
+            ZbColumnFamilies.DEPRECATED_MESSAGES,
             transactionContext,
             nameCorrelationMessageKey,
             DbNil.INSTANCE);

@@ -42,7 +42,7 @@ public final class DbSignalSubscriptionState implements MutableSignalSubscriptio
     signalNameAndProcessDefinitionKey = new DbCompositeKey<>(signalName, processDefinitionKey);
     subscriptionsColumnFamily =
         zeebeDb.createColumnFamily(
-            ZbColumnFamilies.SIGNAL_SUBSCRIPTION_BY_NAME_AND_KEY,
+            ZbColumnFamilies.DEPRECATED_SIGNAL_SUBSCRIPTION_BY_NAME_AND_KEY,
             transactionContext,
             signalNameAndProcessDefinitionKey,
             signalSubscription);
@@ -50,7 +50,7 @@ public final class DbSignalSubscriptionState implements MutableSignalSubscriptio
     processDefinitionKeyAndSignalName = new DbCompositeKey<>(processDefinitionKey, signalName);
     subscriptionsOfProcessDefinitionKeyColumnFamily =
         zeebeDb.createColumnFamily(
-            ZbColumnFamilies.SIGNAL_SUBSCRIPTION_BY_KEY_AND_NAME,
+            ZbColumnFamilies.DEPRECATED_SIGNAL_SUBSCRIPTION_BY_KEY_AND_NAME,
             transactionContext,
             processDefinitionKeyAndSignalName,
             DbNil.INSTANCE);

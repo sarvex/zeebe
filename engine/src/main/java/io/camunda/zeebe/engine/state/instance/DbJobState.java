@@ -91,7 +91,10 @@ public final class DbJobState implements JobState, MutableJobState {
     typeJobKey = new DbCompositeKey<>(jobTypeKey, fkJob);
     activatableColumnFamily =
         zeebeDb.createColumnFamily(
-            ZbColumnFamilies.JOB_ACTIVATABLE, transactionContext, typeJobKey, DbNil.INSTANCE);
+            ZbColumnFamilies.DEPRECATED_JOB_ACTIVATABLE,
+            transactionContext,
+            typeJobKey,
+            DbNil.INSTANCE);
 
     deadlineKey = new DbLong();
     deadlineJobKey = new DbCompositeKey<>(deadlineKey, fkJob);

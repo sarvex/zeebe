@@ -76,7 +76,7 @@ public final class DbProcessState implements MutableProcessState {
     persistedProcess = new PersistedProcess();
     processColumnFamily =
         zeebeDb.createColumnFamily(
-            ZbColumnFamilies.PROCESS_CACHE,
+            ZbColumnFamilies.DEPRECATED_PROCESS_CACHE,
             transactionContext,
             processDefinitionKey,
             persistedProcess);
@@ -86,17 +86,22 @@ public final class DbProcessState implements MutableProcessState {
     idAndVersionKey = new DbCompositeKey<>(processId, processVersion);
     processByIdAndVersionColumnFamily =
         zeebeDb.createColumnFamily(
-            ZbColumnFamilies.PROCESS_CACHE_BY_ID_AND_VERSION,
+            ZbColumnFamilies.DEPRECATED_PROCESS_CACHE_BY_ID_AND_VERSION,
             transactionContext,
             idAndVersionKey,
             persistedProcess);
 
     fkProcessId =
         new DbForeignKey<>(
-            processId, ZbColumnFamilies.PROCESS_CACHE_BY_ID_AND_VERSION, MatchType.Prefix);
+            processId,
+            ZbColumnFamilies.DEPRECATED_PROCESS_CACHE_BY_ID_AND_VERSION,
+            MatchType.Prefix);
     digestByIdColumnFamily =
         zeebeDb.createColumnFamily(
-            ZbColumnFamilies.PROCESS_CACHE_DIGEST_BY_ID, transactionContext, fkProcessId, digest);
+            ZbColumnFamilies.DEPRECATED_PROCESS_CACHE_DIGEST_BY_ID,
+            transactionContext,
+            fkProcessId,
+            digest);
 
     processesByKey = new Long2ObjectHashMap<>();
 

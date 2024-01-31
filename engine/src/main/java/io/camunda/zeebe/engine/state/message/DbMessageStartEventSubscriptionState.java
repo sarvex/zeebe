@@ -44,7 +44,7 @@ public final class DbMessageStartEventSubscriptionState
     messageNameAndProcessDefinitionKey = new DbCompositeKey<>(messageName, processDefinitionKey);
     subscriptionsColumnFamily =
         zeebeDb.createColumnFamily(
-            ZbColumnFamilies.MESSAGE_START_EVENT_SUBSCRIPTION_BY_NAME_AND_KEY,
+            ZbColumnFamilies.DEPRECATED_MESSAGE_START_EVENT_SUBSCRIPTION_BY_NAME_AND_KEY,
             transactionContext,
             messageNameAndProcessDefinitionKey,
             messageStartEventSubscription);
@@ -52,7 +52,7 @@ public final class DbMessageStartEventSubscriptionState
     processDefinitionKeyAndMessageName = new DbCompositeKey<>(processDefinitionKey, messageName);
     subscriptionsOfProcessDefinitionKeyColumnFamily =
         zeebeDb.createColumnFamily(
-            ZbColumnFamilies.MESSAGE_START_EVENT_SUBSCRIPTION_BY_KEY_AND_NAME,
+            ZbColumnFamilies.DEPRECATED_MESSAGE_START_EVENT_SUBSCRIPTION_BY_KEY_AND_NAME,
             transactionContext,
             processDefinitionKeyAndMessageName,
             DbNil.INSTANCE);
