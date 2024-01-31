@@ -43,7 +43,7 @@ public final class DbSignalSubscriptionState implements MutableSignalSubscriptio
     signalNameAndSubscriptionKey = new DbCompositeKey<>(signalName, subscriptionKey);
     signalNameAndSubscriptionKeyColumnFamily =
         zeebeDb.createColumnFamily(
-            ZbColumnFamilies.SIGNAL_SUBSCRIPTION_BY_NAME_AND_KEY,
+            ZbColumnFamilies.DEPRECATED_SIGNAL_SUBSCRIPTION_BY_NAME_AND_KEY,
             transactionContext,
             signalNameAndSubscriptionKey,
             signalSubscription);
@@ -51,7 +51,7 @@ public final class DbSignalSubscriptionState implements MutableSignalSubscriptio
     subscriptionKeyAndSignalName = new DbCompositeKey<>(subscriptionKey, signalName);
     subscriptionKeyAndSignalNameColumnFamily =
         zeebeDb.createColumnFamily(
-            ZbColumnFamilies.SIGNAL_SUBSCRIPTION_BY_KEY_AND_NAME,
+            ZbColumnFamilies.DEPRECATED_SIGNAL_SUBSCRIPTION_BY_KEY_AND_NAME,
             transactionContext,
             subscriptionKeyAndSignalName,
             DbNil.INSTANCE);
@@ -96,20 +96,20 @@ public final class DbSignalSubscriptionState implements MutableSignalSubscriptio
   @Override
   public void visitStartEventSubscriptionsByProcessDefinitionKey(
       final long processDefinitionKey, final SignalSubscriptionVisitor visitor) {
-    this.subscriptionKey.wrapLong(processDefinitionKey);
+    subscriptionKey.wrapLong(processDefinitionKey);
     visitSubscriptions(visitor);
   }
 
   @Override
   public void visitByElementInstanceKey(
       final long elementInstanceKey, final SignalSubscriptionVisitor visitor) {
-    this.subscriptionKey.wrapLong(elementInstanceKey);
+    subscriptionKey.wrapLong(elementInstanceKey);
     visitSubscriptions(visitor);
   }
 
   private void visitSubscriptions(final SignalSubscriptionVisitor visitor) {
     subscriptionKeyAndSignalNameColumnFamily.whileEqualPrefix(
-        this.subscriptionKey,
+        subscriptionKey,
         (key, value) -> {
           final var subscription =
               signalNameAndSubscriptionKeyColumnFamily.get(signalNameAndSubscriptionKey);
@@ -126,7 +126,7 @@ public final class DbSignalSubscriptionState implements MutableSignalSubscriptio
   }
 
   private void wrapSubscriptionKeys(final long key, final DirectBuffer signalName) {
-    this.subscriptionKey.wrapLong(key);
+    subscriptionKey.wrapLong(key);
     this.signalName.wrapBuffer(signalName);
   }
 }
