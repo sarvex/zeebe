@@ -158,6 +158,18 @@ public class Engine implements RecordProcessor {
         final var errorRecord = getRejectionRecord(record);
         handleUnexpectedError(processingException, errorRecord);
       }
+    } catch (final Exception e) {
+      if (record.hasRequestMetadata()) {
+        // if the records is a user command try to write a simple rejection with not much details.
+        // The exception might have been caused because the writing rejection record failed.
+        record.getValue().reset();
+        writers.rejection().appendRejection(record, RejectionType.PROCESSING_ERROR, e.getMessage());
+        writers
+            .response()
+            .writeRejectionOnCommand(record, RejectionType.PROCESSING_ERROR, e.getMessage());
+      } else {
+        throw e;
+      }
     }
     return processingResultBuilder.build();
   }
