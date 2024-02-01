@@ -16,6 +16,7 @@ import io.camunda.zeebe.logstreams.log.LogStreamWriter;
 import io.camunda.zeebe.logstreams.log.LoggedEvent;
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata;
 import io.camunda.zeebe.protocol.record.RecordType;
+import io.camunda.zeebe.protocol.record.RejectionType;
 import io.camunda.zeebe.scheduler.ActorControl;
 import io.camunda.zeebe.scheduler.clock.ActorClock;
 import io.camunda.zeebe.scheduler.future.ActorFuture;
@@ -434,6 +435,14 @@ public final class ProcessingStateMachine {
             },
             abortCondition);
 
+    // If in error loop and the processing record is a user command
+    if (onErrorRetries > 3 && typedCommand.hasRequestMetadata()) { // here 3 is just a magic number
+      // If we are in an error loop, we need to send a rejection to the client and exit the loop
+      // otherwise we will never make progress
+      tryRejectingIfUserCommand();
+      return;
+    }
+
     actor.runOnCompletion(
         retryFuture,
         (bool, throwable) -> {
@@ -446,6 +455,42 @@ public final class ProcessingStateMachine {
             onError(nextStep);
           }
         });
+  }
+
+  private void tryRejectingIfUserCommand() {
+    final ProcessingResultBuilder processingResultBuilder =
+        new BufferedProcessingResultBuilder(logStreamWriter::canWriteEvents);
+    typedCommand.getValue().reset();
+    final var rejectionMetadata =
+        new RecordMetadata()
+            .recordType(RecordType.COMMAND_REJECTION)
+            .intent(typedCommand.getIntent())
+            .rejectionType(RejectionType.PROCESSING_ERROR)
+            .rejectionReason(
+                "Unexpected error in handling command"); // not using the error because it may
+    // exceed the buffer size and continue the error loop.
+    processingResultBuilder.appendRecord(
+        currentRecord.getKey(), typedCommand.getValue(), rejectionMetadata);
+    processingResultBuilder.withResponse(
+        RecordType.COMMAND_REJECTION,
+        typedCommand.getKey(),
+        typedCommand.getIntent(),
+        typedCommand.getValue(),
+        typedCommand.getValueType(),
+        RejectionType.PROCESSING_ERROR,
+        "Unexpected error in handling command. Check logs for details.",
+        typedCommand.getRequestId(),
+        typedCommand.getRequestStreamId());
+    currentProcessingResult = processingResultBuilder.build();
+
+    pendingWrites = currentProcessingResult.getRecordBatch().entries();
+    pendingResponses = currentProcessingResult.getProcessingResponse().stream().toList();
+    // we need to mark the command as processed, even if the processing failed
+    // otherwise we might replay the events, which have been written during
+    // #onProcessingError again on restart
+    finalizeCommandProcessing();
+
+    writeRecords();
   }
 
   private void errorHandlingInTransaction(final Throwable processingException) throws Exception {
